@@ -13,6 +13,8 @@
 namespace flutter {
 namespace testing {
 
+using EGLProcAddress = void (*)(void);
+
 class MockEpoxy {
  public:
   MockEpoxy();
@@ -21,6 +23,7 @@ class MockEpoxy {
   MOCK_METHOD(bool, epoxy_has_gl_extension, (const char* extension));
   MOCK_METHOD(bool, epoxy_is_desktop_gl, ());
   MOCK_METHOD(int, epoxy_gl_version, ());
+  MOCK_METHOD(EGLProcAddress, eglGetProcAddress, (const char* procname));
   MOCK_METHOD(void,
               eglCreateImageKHR,
               (EGLDisplay dpy,

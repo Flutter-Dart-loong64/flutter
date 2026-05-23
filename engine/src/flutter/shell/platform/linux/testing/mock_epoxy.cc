@@ -297,7 +297,7 @@ EGLint _eglGetError() {
 
 void (*_eglGetProcAddress(const char* procname))(void) {
   mock_error = EGL_SUCCESS;
-  return nullptr;
+  return mock != nullptr ? mock->eglGetProcAddress(procname) : nullptr;
 }
 
 EGLBoolean _eglInitialize(EGLDisplay dpy, EGLint* major, EGLint* minor) {
