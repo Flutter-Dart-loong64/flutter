@@ -18,6 +18,12 @@
 
 #include <epoxy/egl.h>
 
+namespace {
+
+void DoNothingGLProc() {}
+
+}  // namespace
+
 TEST(FlCompositorOpenGLTest, Render) {
   ::testing::NiceMock<flutter::testing::MockEpoxy> epoxy;
   g_autoptr(FlDartProject) project = fl_dart_project_new();
@@ -278,6 +284,166 @@ TEST(FlCompositorOpenGLTest, BlitFramebufferExtension) {
   const FlutterLayer* layers[1] = {&layer};
 
   // Present layer and render.
+  std::thread([&]() {
+    fl_compositor_present_layers(FL_COMPOSITOR(compositor), layers, 1);
+  }).join();
+  int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
+  g_autofree unsigned char* image_data =
+      static_cast<unsigned char*>(malloc(height * stride));
+  cairo_surface_t* surface = cairo_image_surface_create_for_data(
+      image_data, CAIRO_FORMAT_ARGB32, width, height, stride);
+  cairo_t* cr = cairo_create(surface);
+  fl_compositor_render(FL_COMPOSITOR(compositor), cr, nullptr, TRUE);
+  cairo_surface_destroy(surface);
+  cairo_destroy(cr);
+}
+
+TEST(FlCompositorOpenGLTest, BlitFramebufferLoongGPUMissingProc) {
+  ::testing::NiceMock<flutter::testing::MockEpoxy> epoxy;
+  g_autoptr(FlDartProject) project = fl_dart_project_new();
+  g_autoptr(FlEngine) engine = fl_engine_new(project);
+  g_autoptr(FlTaskRunner) task_runner = fl_task_runner_new(engine);
+  g_autoptr(FlOpenGLManager) opengl_manager = fl_opengl_manager_new();
+
+  constexpr size_t width = 100;
+  constexpr size_t height = 100;
+
+  ON_CALL(epoxy, glGetString(GL_VENDOR))
+      .WillByDefault(
+          ::testing::Return(reinterpret_cast<const GLubyte*>("X.Org")));
+  ON_CALL(epoxy, glGetString(GL_RENDERER))
+      .WillByDefault(::testing::Return(
+          reinterpret_cast<const GLubyte*>("LoongGPU(TM) LG110")));
+  ON_CALL(epoxy, epoxy_is_desktop_gl).WillByDefault(::testing::Return(true));
+  EXPECT_CALL(epoxy, epoxy_gl_version).WillRepeatedly(::testing::Return(30));
+  EXPECT_CALL(epoxy, eglGetProcAddress(::testing::_))
+      .WillRepeatedly(::testing::Return(nullptr));
+
+  EXPECT_CALL(epoxy, glBlitFramebuffer).Times(0);
+
+  g_autoptr(FlMockRenderable) renderable = fl_mock_renderable_new();
+  g_autoptr(FlCompositorOpenGL) compositor =
+      fl_compositor_opengl_new(task_runner, opengl_manager, FALSE);
+  fl_engine_set_implicit_view(engine, FL_RENDERABLE(renderable));
+
+  g_autoptr(FlFramebuffer) framebuffer =
+      fl_framebuffer_new(GL_RGB, width, height, FALSE);
+  FlutterBackingStore backing_store = {
+      .type = kFlutterBackingStoreTypeOpenGL,
+      .open_gl = {.framebuffer = {.user_data = framebuffer}}};
+  FlutterLayer layer = {.type = kFlutterLayerContentTypeBackingStore,
+                        .backing_store = &backing_store,
+                        .offset = {0, 0},
+                        .size = {width, height}};
+  const FlutterLayer* layers[1] = {&layer};
+
+  std::thread([&]() {
+    fl_compositor_present_layers(FL_COMPOSITOR(compositor), layers, 1);
+  }).join();
+  int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
+  g_autofree unsigned char* image_data =
+      static_cast<unsigned char*>(malloc(height * stride));
+  cairo_surface_t* surface = cairo_image_surface_create_for_data(
+      image_data, CAIRO_FORMAT_ARGB32, width, height, stride);
+  cairo_t* cr = cairo_create(surface);
+  fl_compositor_render(FL_COMPOSITOR(compositor), cr, nullptr, TRUE);
+  cairo_surface_destroy(surface);
+  cairo_destroy(cr);
+}
+
+TEST(FlCompositorOpenGLTest, BlitFramebufferLoongGPUGles2WithoutProvider) {
+  ::testing::NiceMock<flutter::testing::MockEpoxy> epoxy;
+  g_autoptr(FlDartProject) project = fl_dart_project_new();
+  g_autoptr(FlEngine) engine = fl_engine_new(project);
+  g_autoptr(FlTaskRunner) task_runner = fl_task_runner_new(engine);
+  g_autoptr(FlOpenGLManager) opengl_manager = fl_opengl_manager_new();
+
+  constexpr size_t width = 100;
+  constexpr size_t height = 100;
+
+  ON_CALL(epoxy, glGetString(GL_VENDOR))
+      .WillByDefault(
+          ::testing::Return(reinterpret_cast<const GLubyte*>("X.Org")));
+  ON_CALL(epoxy, glGetString(GL_RENDERER))
+      .WillByDefault(::testing::Return(
+          reinterpret_cast<const GLubyte*>("LoongGPU(TM) LG110")));
+  ON_CALL(epoxy, epoxy_is_desktop_gl).WillByDefault(::testing::Return(false));
+  EXPECT_CALL(epoxy, epoxy_gl_version).WillRepeatedly(::testing::Return(20));
+  EXPECT_CALL(epoxy, epoxy_has_gl_extension(::testing::_))
+      .WillRepeatedly(::testing::Return(false));
+  EXPECT_CALL(epoxy, eglGetProcAddress(::testing::_)).Times(0);
+  EXPECT_CALL(epoxy, glBlitFramebuffer).Times(0);
+
+  g_autoptr(FlMockRenderable) renderable = fl_mock_renderable_new();
+  g_autoptr(FlCompositorOpenGL) compositor =
+      fl_compositor_opengl_new(task_runner, opengl_manager, FALSE);
+  fl_engine_set_implicit_view(engine, FL_RENDERABLE(renderable));
+
+  g_autoptr(FlFramebuffer) framebuffer =
+      fl_framebuffer_new(GL_RGB, width, height, FALSE);
+  FlutterBackingStore backing_store = {
+      .type = kFlutterBackingStoreTypeOpenGL,
+      .open_gl = {.framebuffer = {.user_data = framebuffer}}};
+  FlutterLayer layer = {.type = kFlutterLayerContentTypeBackingStore,
+                        .backing_store = &backing_store,
+                        .offset = {0, 0},
+                        .size = {width, height}};
+  const FlutterLayer* layers[1] = {&layer};
+
+  std::thread([&]() {
+    fl_compositor_present_layers(FL_COMPOSITOR(compositor), layers, 1);
+  }).join();
+  int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
+  g_autofree unsigned char* image_data =
+      static_cast<unsigned char*>(malloc(height * stride));
+  cairo_surface_t* surface = cairo_image_surface_create_for_data(
+      image_data, CAIRO_FORMAT_ARGB32, width, height, stride);
+  cairo_t* cr = cairo_create(surface);
+  fl_compositor_render(FL_COMPOSITOR(compositor), cr, nullptr, TRUE);
+  cairo_surface_destroy(surface);
+  cairo_destroy(cr);
+}
+
+TEST(FlCompositorOpenGLTest, BlitFramebufferLoongGPUWithResolvableProc) {
+  ::testing::NiceMock<flutter::testing::MockEpoxy> epoxy;
+  g_autoptr(FlDartProject) project = fl_dart_project_new();
+  g_autoptr(FlEngine) engine = fl_engine_new(project);
+  g_autoptr(FlTaskRunner) task_runner = fl_task_runner_new(engine);
+  g_autoptr(FlOpenGLManager) opengl_manager = fl_opengl_manager_new();
+
+  constexpr size_t width = 100;
+  constexpr size_t height = 100;
+
+  ON_CALL(epoxy, glGetString(GL_VENDOR))
+      .WillByDefault(
+          ::testing::Return(reinterpret_cast<const GLubyte*>("X.Org")));
+  ON_CALL(epoxy, glGetString(GL_RENDERER))
+      .WillByDefault(::testing::Return(
+          reinterpret_cast<const GLubyte*>("LoongGPU(TM) LG110")));
+  ON_CALL(epoxy, epoxy_is_desktop_gl).WillByDefault(::testing::Return(true));
+  EXPECT_CALL(epoxy, epoxy_gl_version).WillRepeatedly(::testing::Return(30));
+  EXPECT_CALL(epoxy,
+              eglGetProcAddress(::testing::StrEq("glBlitFramebuffer")))
+      .WillRepeatedly(::testing::Return(&DoNothingGLProc));
+
+  EXPECT_CALL(epoxy, glBlitFramebuffer);
+
+  g_autoptr(FlMockRenderable) renderable = fl_mock_renderable_new();
+  g_autoptr(FlCompositorOpenGL) compositor =
+      fl_compositor_opengl_new(task_runner, opengl_manager, FALSE);
+  fl_engine_set_implicit_view(engine, FL_RENDERABLE(renderable));
+
+  g_autoptr(FlFramebuffer) framebuffer =
+      fl_framebuffer_new(GL_RGB, width, height, FALSE);
+  FlutterBackingStore backing_store = {
+      .type = kFlutterBackingStoreTypeOpenGL,
+      .open_gl = {.framebuffer = {.user_data = framebuffer}}};
+  FlutterLayer layer = {.type = kFlutterLayerContentTypeBackingStore,
+                        .backing_store = &backing_store,
+                        .offset = {0, 0},
+                        .size = {width, height}};
+  const FlutterLayer* layers[1] = {&layer};
+
   std::thread([&]() {
     fl_compositor_present_layers(FL_COMPOSITOR(compositor), layers, 1);
   }).join();
