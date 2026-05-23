@@ -97,7 +97,11 @@ dependencies:
   checked_yaml: 2.0.4
   cli_config: 0.2.0
   clock: ^1.1.2
-  code_assets: 1.1.0
+  code_assets:
+    git:
+      url: https://github.com/Flutter-Dart-loong64/native.git
+      ref: a5f01b2f
+      path: pkgs/code_assets
   collection: ^1.19.1
   convert: 3.1.2
   coverage: 1.15.0
@@ -121,8 +125,16 @@ dependencies:
   google_mobile_ads: 8.0.0
   googleapis: 14.0.0
   googleapis_auth: 2.3.1
-  hooks: 2.0.0
-  data_assets: 0.20.0
+  hooks:
+    git:
+      url: https://github.com/Flutter-Dart-loong64/native.git
+      ref: a5f01b2f
+      path: pkgs/hooks
+  data_assets:
+    git:
+      url: https://github.com/Flutter-Dart-loong64/native.git
+      ref: a5f01b2f
+      path: pkgs/data_assets
   record_use: 0.6.0
   html: 0.15.6
   http: 1.6.0
@@ -224,4 +236,26 @@ dependencies:
 dev_dependencies:
   ffigen: 20.1.1
 
-# PUBSPEC CHECKSUM: 82uul6
+dependency_overrides:
+  code_assets:
+    git:
+      url: https://github.com/Flutter-Dart-loong64/native.git
+      ref: a5f01b2f
+      path: pkgs/code_assets
+  hooks_runner:
+    git:
+      url: https://github.com/Flutter-Dart-loong64/native.git
+      ref: a5f01b2f
+      path: pkgs/hooks_runner
+  hooks:
+    git:
+      url: https://github.com/Flutter-Dart-loong64/native.git
+      ref: a5f01b2f
+      path: pkgs/hooks
+  data_assets:
+    git:
+      url: https://github.com/Flutter-Dart-loong64/native.git
+      ref: a5f01b2f
+      path: pkgs/data_assets
+
+# PUBSPEC CHECKSUM: lllq1f

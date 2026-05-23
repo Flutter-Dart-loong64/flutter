@@ -92,9 +92,9 @@ def is_host_build(args):
   # If target_os == None, then this is a host build.
   if args.target_os is None:
     return True
-  # For linux arm64 builds, we cross compile from x64 hosts, so the
-  # target_os='linux' and linux-cpu='arm64'
-  if args.target_os == 'linux' and args.linux_cpu == 'arm64':
+  # For linux non-x64 host builds, we cross compile from x64 hosts, so the
+  # target_os='linux' and linux-cpu='<arch>'.
+  if args.target_os == 'linux' and args.linux_cpu in ['arm64', 'loong64']:
     return True
   # The Mac and host targets are redundant. Again, necessary to disambiguate
   # during cross-compilation.
@@ -116,7 +116,7 @@ def can_use_prebuilt_dart(args):
       prebuilt = 'macos-x64'
     else:
       prebuilt = 'linux-x64'
-  elif args.target_os == 'linux' and args.linux_cpu in ['x64', 'arm64']:
+  elif args.target_os == 'linux' and args.linux_cpu in ['x64', 'arm64', 'loong64']:
     prebuilt = 'linux-%s' % args.linux_cpu
   elif args.target_os == 'mac' and args.mac_cpu in ['x64', 'arm64']:
     prebuilt = 'macos-%s' % args.mac_cpu
@@ -159,6 +159,8 @@ def get_host_cpu():
   machine = platform.machine()
   if machine in ['aarch64', 'arm64', 'ARM64']:
     return 'arm64'
+  if machine in ['loongarch64', 'loong64']:
+    return 'loong64'
   if machine in ['x86_64', 'AMD64', 'x64']:
     return 'x64'
   if machine in ['i686', 'i386', 'x86']:
@@ -192,6 +194,8 @@ def get_target_cpu(args):
     return 'arm64'
 
   # Host build. Default to x64 unless overridden.
+  if get_host_os() == 'linux' and get_host_cpu() == 'loong64':
+    return 'loong64'
   if get_host_os() == 'mac' and args.mac_cpu:
     return args.mac_cpu
   if get_host_os() == 'win' and args.windows_cpu:
@@ -983,7 +987,7 @@ def parse_args(args):
   parser.add_argument('--web', action='store_true', default=False)
   parser.add_argument('--windows', dest='target_os', action='store_const', const='win')
 
-  parser.add_argument('--linux-cpu', type=str, choices=['x64', 'x86', 'arm64', 'arm'])
+  parser.add_argument('--linux-cpu', type=str, choices=['x64', 'x86', 'arm64', 'arm', 'loong64'])
   parser.add_argument('--fuchsia-cpu', type=str, choices=['x64', 'arm64'], default='x64')
   parser.add_argument('--windows-cpu', type=str, choices=['x64', 'arm64', 'x86'], default='x64')
   parser.add_argument('--simulator-cpu', type=str, choices=['x64', 'arm64'], default='x64')

@@ -401,6 +401,12 @@ config("compiler") {
       cflags += [ "--target=aarch64-linux-gnu" ]
       ldflags += [ "--target=aarch64-linux-gnu" ]
       cflags += [ "-DBORINGSSL_CLANG_SUPPORTS_DOT_ARCH" ]
+    } else if (current_cpu == "loong64") {
+      cflags += [ "--target=loongarch64-linux-gnu" ]
+      ldflags += [
+        "--target=loongarch64-linux-gnu",
+        "-fuse-ld=lld",
+      ]
     }
   }
 
@@ -744,6 +750,10 @@ if (is_win) {
     default_warning_flags += [
       "-Werror",  # Warnings as errors.
     ]
+  }
+
+  if (is_linux && current_cpu == "loong64" && is_clang) {
+    default_warning_flags += [ "-Wno-unknown-warning-option" ]
   }
 
   if (is_wasm) {

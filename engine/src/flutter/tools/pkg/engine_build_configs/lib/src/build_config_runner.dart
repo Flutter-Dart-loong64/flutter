@@ -407,6 +407,10 @@ final class BuildRunner extends Runner {
   }
 
   late final String _hostCpu = () {
+    final String abiName = abi.toString();
+    if (abiName == 'linux_loong64' || abiName == 'Abi.linuxLoong64') {
+      return 'loong64';
+    }
     return switch (abi) {
       ffi.Abi.linuxArm64 || ffi.Abi.macosArm64 || ffi.Abi.windowsArm64 => 'arm64',
       ffi.Abi.linuxX64 || ffi.Abi.macosX64 || ffi.Abi.windowsX64 => 'x64',

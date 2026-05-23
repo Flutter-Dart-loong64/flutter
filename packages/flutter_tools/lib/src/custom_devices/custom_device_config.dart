@@ -99,7 +99,9 @@ class CustomDeviceConfig {
        assert(
          platform == null ||
              platform == TargetPlatform.linux_x64 ||
-             platform == TargetPlatform.linux_arm64,
+             platform == TargetPlatform.linux_arm64 ||
+             platform == TargetPlatform.linux_riscv64 ||
+             platform == TargetPlatform.linux_loong64,
        );
 
   /// Create a CustomDeviceConfig from some JSON value.
@@ -130,7 +132,7 @@ class CustomDeviceConfig {
     final String? archString = _castStringOrNull(
       typedMap[_kPlatform],
       _kPlatform,
-      'null or one of linux-arm64, linux-x64',
+      'null or one of linux-arm64, linux-loong64, linux-riscv64, linux-x64',
     );
 
     late TargetPlatform? platform;
@@ -139,16 +141,18 @@ class CustomDeviceConfig {
     } on UnsupportedError {
       throw const CustomDeviceRevivalException.fromDescriptions(
         _kPlatform,
-        'null or one of linux-arm64, linux-x64',
+        'null or one of linux-arm64, linux-loong64, linux-riscv64, linux-x64',
       );
     }
 
     if (platform != null &&
         platform != TargetPlatform.linux_arm64 &&
+        platform != TargetPlatform.linux_loong64 &&
+        platform != TargetPlatform.linux_riscv64 &&
         platform != TargetPlatform.linux_x64) {
       throw const CustomDeviceRevivalException.fromDescriptions(
         _kPlatform,
-        'null or one of linux-arm64, linux-x64',
+        'null or one of linux-arm64, linux-loong64, linux-riscv64, linux-x64',
       );
     }
 

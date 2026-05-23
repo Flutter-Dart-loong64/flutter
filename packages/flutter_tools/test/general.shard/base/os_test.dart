@@ -142,6 +142,15 @@ void main() {
       expect(utils.hostPlatform, HostPlatform.linux_arm64);
     });
 
+    testWithoutContext('Linux LoongArch64', () async {
+      fakeProcessManager.addCommand(
+        const FakeCommand(command: <String>['uname', '-m'], stdout: 'loongarch64'),
+      );
+
+      final OperatingSystemUtils utils = createOSUtils(FakePlatform());
+      expect(utils.hostPlatform, HostPlatform.linux_loong64);
+    });
+
     testWithoutContext('macOS ARM', () async {
       fakeProcessManager.addCommands(<FakeCommand>[
         const FakeCommand(command: <String>['which', 'sysctl']),

@@ -49,6 +49,19 @@ void main() {
     projectUri = environment.projectDir.uri;
   });
 
+  testWithoutContext('Linux native assets architectures include Loong64 support', () {
+    final Iterable<String> architectureNames = OS.linux.architectures.map((
+      Architecture architecture,
+    ) {
+      return architecture.name;
+    });
+
+    expect(
+      architectureNames,
+      containsAll(<String>['arm', 'arm64', 'ia32', 'loong64', 'riscv32', 'riscv64', 'x64']),
+    );
+  });
+
   testUsingContext(
     'Native assets: non-bundled libraries require no copying',
     overrides: <Type, Generator>{ProcessManager: () => FakeProcessManager.empty()},

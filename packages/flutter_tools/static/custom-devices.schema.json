@@ -36,7 +36,7 @@
           },
           "platform": {
             "description": "The platform of the target device.",
-            "enum": ["linux-arm64", "linux-x64"],
+            "enum": ["linux-arm64", "linux-loong64", "linux-riscv64", "linux-x64"],
             "default": "linux-arm64",
             "required": false
           },

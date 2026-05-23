@@ -35,6 +35,9 @@ final class TargetPlatform {
   /// Linux ARM64.
   static const linuxArm64 = TargetPlatform._('linux-arm64');
 
+  /// Linux LoongArch64.
+  static const linuxLoong64 = TargetPlatform._('linux-loong64');
+
   /// Linux x64.
   static const linuxX64 = TargetPlatform._('linux-x64');
 
@@ -94,6 +97,7 @@ final class TargetPlatform {
     androidX64,
     androidX86,
     linuxArm64,
+    linuxLoong64,
     linuxX64,
     windowsArm64,
     windowsX64,
