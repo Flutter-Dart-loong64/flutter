@@ -4,13 +4,13 @@
 
 #include "fl_compositor_opengl.h"
 
-#include <epoxy/egl.h>
 #include <epoxy/gl.h>
 
 #include "flutter/common/constants.h"
 #include "flutter/shell/platform/embedder/embedder.h"
 #include "flutter/shell/platform/linux/fl_engine_private.h"
 #include "flutter/shell/platform/linux/fl_framebuffer.h"
+#include "flutter/shell/platform/linux/fl_opengl_driver.h"
 
 // Vertex shader to draw Flutter window contents.
 static const char* vertex_shader_src =
@@ -46,6 +46,9 @@ struct _FlCompositorOpenGL {
 
   // TRUE if can share framebuffers between contexts.
   gboolean shareable;
+
+  // TRUE if glBlitFramebuffer can be safely used for the first layer.
+  gboolean has_gl_framebuffer_blit;
 
   // Flutter OpenGL contexts.
   FlOpenGLManager* opengl_manager;
@@ -166,6 +169,11 @@ static void setup_shader(FlCompositorOpenGL* self) {
   glBindBuffer(GL_ARRAY_BUFFER, self->vertex_buffer);
   glBufferData(GL_ARRAY_BUFFER, sizeof(vertex_data), vertex_data,
                GL_STATIC_DRAW);
+
+  FlOpenGLDriverCapabilities driver_capabilities =
+      fl_opengl_driver_get_capabilities();
+  self->has_gl_framebuffer_blit =
+      driver_capabilities.supports_framebuffer_blit;
 }
 
 static void cleanup_shader(FlCompositorOpenGL* self) {
@@ -192,10 +200,12 @@ static void composite_layer(FlCompositorOpenGL* self,
                             int height) {
   size_t texture_width = fl_framebuffer_get_width(framebuffer);
   size_t texture_height = fl_framebuffer_get_height(framebuffer);
-  glUniform2f(self->offset_location, (2 * x / width) - 1.0,
-              (2 * y / width) - 1.0);
-  glUniform2f(self->scale_location, texture_width / width,
-              texture_height / height);
+
+  glUniform2f(self->offset_location,
+              (2 * (x + texture_width / 2.0) / width) - 1.0,
+              (2 * (height - y - texture_height / 2.0) / height) - 1.0);
+  glUniform2f(self->scale_location, static_cast<GLfloat>(texture_width) / width,
+              static_cast<GLfloat>(texture_height) / height);
 
   GLuint texture_id = fl_framebuffer_get_texture_id(framebuffer);
   glBindTexture(GL_TEXTURE_2D, texture_id);
@@ -234,6 +244,8 @@ static gboolean fl_compositor_opengl_present_layers(FlCompositor* compositor,
   glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &saved_read_framebuffer_binding);
   GLint saved_current_program;
   glGetIntegerv(GL_CURRENT_PROGRAM, &saved_current_program);
+  GLint saved_viewport[4];
+  glGetIntegerv(GL_VIEWPORT, saved_viewport);
   GLboolean saved_scissor_test = glIsEnabled(GL_SCISSOR_TEST);
   GLboolean saved_blend = glIsEnabled(GL_BLEND);
   GLint saved_src_rgb;
@@ -293,6 +305,7 @@ static gboolean fl_compositor_opengl_present_layers(FlCompositor* compositor,
 
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER,
                     fl_framebuffer_get_id(self->framebuffer));
+  glViewport(0, 0, width, height);
   gboolean first_layer = TRUE;
   for (size_t i = 0; i < layers_count; ++i) {
     const FlutterLayer* layer = layers[i];
@@ -303,19 +316,25 @@ static gboolean fl_compositor_opengl_present_layers(FlCompositor* compositor,
             FL_FRAMEBUFFER(backing_store->open_gl.framebuffer.user_data);
         glBindFramebuffer(GL_READ_FRAMEBUFFER,
                           fl_framebuffer_get_id(framebuffer));
-        // The first layer can be blitted, and following layers composited with
-        // this.
-        if (first_layer) {
+        // The first layer can be blitted when the driver exposes a usable
+        // provider; otherwise use the shader compositing path for all layers.
+        if (first_layer && self->has_gl_framebuffer_blit) {
           glBlitFramebuffer(layer->offset.x, layer->offset.y, layer->size.width,
                             layer->size.height, layer->offset.x,
                             layer->offset.y, layer->size.width,
                             layer->size.height, GL_COLOR_BUFFER_BIT,
                             GL_NEAREST);
-          first_layer = FALSE;
         } else {
+          if (first_layer) {
+            glDisable(GL_BLEND);
+          }
           composite_layer(self, framebuffer, layer->offset.x, layer->offset.y,
                           width, height);
+          if (first_layer) {
+            glEnable(GL_BLEND);
+          }
         }
+        first_layer = FALSE;
       } break;
       case kFlutterLayerContentTypePlatformView: {
         // TODO(robert-ancell) Not implemented -
@@ -343,6 +362,8 @@ static gboolean fl_compositor_opengl_present_layers(FlCompositor* compositor,
   glBindVertexArray(saved_vao_binding);
   glBindBuffer(GL_ARRAY_BUFFER, saved_array_buffer_binding);
   glBindFramebuffer(GL_DRAW_FRAMEBUFFER, saved_draw_framebuffer_binding);
+  glViewport(saved_viewport[0], saved_viewport[1], saved_viewport[2],
+             saved_viewport[3]);
   glUseProgram(saved_current_program);
   glBlendFuncSeparate(saved_src_rgb, saved_dst_rgb, saved_src_alpha,
                       saved_dst_alpha);
