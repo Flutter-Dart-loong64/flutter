@@ -47,6 +47,7 @@ class BuildBundleCommand extends BuildSubCommand {
           'linux-x64',
           'linux-arm64',
           'linux-riscv64',
+          'linux-loong64',
           'windows-x64',
           'windows-arm64',
         ],
@@ -124,6 +125,7 @@ class BuildBundleCommand extends BuildSubCommand {
       case TargetPlatform.linux_x64:
       case TargetPlatform.linux_arm64:
       case TargetPlatform.linux_riscv64:
+      case TargetPlatform.linux_loong64:
         if (!featureFlags.isLinuxEnabled) {
           throwToolExit('Linux is not a supported target platform.');
         }

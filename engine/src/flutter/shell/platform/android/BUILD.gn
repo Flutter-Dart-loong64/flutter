@@ -782,7 +782,7 @@ if (target_cpu != "x86") {
     }
 
     if (host_os == "linux") {
-      output = "$android_zip_archive_dir/linux-x64.zip"
+      output = "$android_zip_archive_dir/linux-${host_cpu}.zip"
     } else if (host_os == "mac") {
       output = "$android_zip_archive_dir/darwin-x64.zip"
     } else if (host_os == "win") {
@@ -811,7 +811,8 @@ if (target_cpu != "x86") {
 }
 
 if (host_os == "linux" &&
-    (target_cpu == "x64" || target_cpu == "arm64" || target_cpu == "riscv64")) {
+    (target_cpu == "x64" || target_cpu == "arm64" ||
+     target_cpu == "loong64" || target_cpu == "riscv64")) {
   zip_bundle("analyze_snapshot") {
     deps = [ "$dart_src/runtime/bin:analyze_snapshot($host_toolchain)" ]
 
@@ -824,7 +825,7 @@ if (host_os == "linux" &&
         rebase_path("$analyze_snapshot_out_dir/$analyze_snapshot_bin")
 
     if (host_os == "linux") {
-      output = "$android_zip_archive_dir/analyze-snapshot-linux-x64.zip"
+      output = "$android_zip_archive_dir/analyze-snapshot-linux-${host_cpu}.zip"
     } else if (host_os == "mac") {
       output = "$android_zip_archive_dir/analyze-snapshot-darwin-x64.zip"
     } else if (host_os == "win") {

@@ -26,12 +26,13 @@ class BuildLinuxCommand extends BuildSubCommand {
     final String defaultTargetPlatform = switch (_operatingSystemUtils.hostPlatform) {
       HostPlatform.linux_arm64 => 'linux-arm64',
       HostPlatform.linux_riscv64 => 'linux-riscv64',
+      HostPlatform.linux_loong64 => 'linux-loong64',
       _ => 'linux-x64',
     };
     argParser.addOption(
       'target-platform',
       defaultsTo: defaultTargetPlatform,
-      allowed: <String>['linux-arm64', 'linux-x64', 'linux-riscv64'],
+      allowed: <String>['linux-arm64', 'linux-x64', 'linux-riscv64', 'linux-loong64'],
       help: 'The target platform for which the app is compiled.',
     );
     argParser.addOption(
@@ -98,6 +99,14 @@ class BuildLinuxCommand extends BuildSubCommand {
         !featureFlags.isRiscv64SupportEnabled) {
       throwToolExit(
         'Building for Linux riscv64 is currently an experimental feature. To enable, run "flutter config --enable-riscv64"',
+      );
+    }
+    // Building for loong64 (on a non-loong64 host) is experimental.
+    if (_operatingSystemUtils.hostPlatform != HostPlatform.linux_loong64 &&
+        targetPlatform == TargetPlatform.linux_loong64 &&
+        !featureFlags.isLoong64SupportEnabled) {
+      throwToolExit(
+        'Building for Linux loong64 is currently an experimental feature. To enable, run "flutter config --enable-loong64"',
       );
     }
     final Logger logger = globals.logger;

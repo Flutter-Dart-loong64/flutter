@@ -288,9 +288,11 @@ class IconTreeShaker {
   }
 
   Future<Map<String, List<int>>> _findConstants(File dart, File constFinder, File appDill) async {
+    final File constFinderAot = _fs.file('${constFinder.path}.aot');
     final cmd = <String>[
-      dart.path,
-      constFinder.path,
+      if (constFinderAot.existsSync())
+        constFinderAot.path
+      else ...<String>[dart.path, constFinder.path],
       '--kernel-file',
       appDill.path,
       '--class-library-uri',

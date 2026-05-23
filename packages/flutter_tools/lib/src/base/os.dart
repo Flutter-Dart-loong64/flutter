@@ -277,13 +277,18 @@ class _PosixUtils extends OperatingSystemUtils {
           '  stderr: ${hostPlatformCheck.stderr.trimRight()}\n'
           'Assuming host platform is ${getNameForHostPlatform(_hostPlatform!)}.',
         );
-      } else if (hostPlatformCheck.stdout.trim().endsWith('x86_64')) {
-        _hostPlatform = HostPlatform.linux_x64;
-      } else if (hostPlatformCheck.stdout.trim().endsWith('riscv64')) {
-        _hostPlatform = HostPlatform.linux_riscv64;
       } else {
-        // We default to ARM if it's not x86_64 and we did not get an error.
-        _hostPlatform = HostPlatform.linux_arm64;
+        final String hostArch = hostPlatformCheck.stdout.trim();
+        if (hostArch.endsWith('x86_64')) {
+          _hostPlatform = HostPlatform.linux_x64;
+        } else if (hostArch.endsWith('riscv64')) {
+          _hostPlatform = HostPlatform.linux_riscv64;
+        } else if (hostArch.endsWith('loongarch64') || hostArch.endsWith('loong64')) {
+          _hostPlatform = HostPlatform.linux_loong64;
+        } else {
+          // We default to ARM if it's not x86_64 and we did not get an error.
+          _hostPlatform = HostPlatform.linux_arm64;
+        }
       }
     }
     return _hostPlatform!;
@@ -614,6 +619,7 @@ enum HostPlatform {
   linux_x64,
   linux_arm64,
   linux_riscv64,
+  linux_loong64,
   windows_x64,
   windows_arm64;
 
@@ -623,6 +629,7 @@ enum HostPlatform {
     linux_x64 => 'x64',
     linux_arm64 => 'arm64',
     linux_riscv64 => 'riscv64',
+    linux_loong64 => 'loong64',
     windows_x64 => 'x64',
     windows_arm64 => 'arm64',
   };
@@ -635,6 +642,7 @@ String getNameForHostPlatform(HostPlatform platform) {
     HostPlatform.linux_x64 => 'linux-x64',
     HostPlatform.linux_arm64 => 'linux-arm64',
     HostPlatform.linux_riscv64 => 'linux-riscv64',
+    HostPlatform.linux_loong64 => 'linux-loong64',
     HostPlatform.windows_x64 => 'windows-x64',
     HostPlatform.windows_arm64 => 'windows-arm64',
   };

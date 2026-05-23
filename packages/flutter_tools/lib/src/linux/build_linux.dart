@@ -165,6 +165,8 @@ Future<void> _runCmake(
       needCrossBuild && targetPlatform == TargetPlatform.linux_arm64;
   final bool needCrossBuildOptionsForRiscv64 =
       needCrossBuild && targetPlatform == TargetPlatform.linux_riscv64;
+  final bool needCrossBuildOptionsForLoong64 =
+      needCrossBuild && targetPlatform == TargetPlatform.linux_loong64;
   int result;
   if (!globals.processManager.canRun('cmake')) {
     throwToolExit(globals.userMessages.cmakeMissing);
@@ -184,6 +186,9 @@ Future<void> _runCmake(
       // Support cross-building for riscv64 targets on x64 hosts.
       if (needCrossBuildOptionsForRiscv64) '-DCMAKE_C_COMPILER_TARGET=riscv64-linux-gnu',
       if (needCrossBuildOptionsForRiscv64) '-DCMAKE_CXX_COMPILER_TARGET=riscv64-linux-gnu',
+      // Support cross-building for loong64 targets on x64 hosts.
+      if (needCrossBuildOptionsForLoong64) '-DCMAKE_C_COMPILER_TARGET=loongarch64-linux-gnu',
+      if (needCrossBuildOptionsForLoong64) '-DCMAKE_CXX_COMPILER_TARGET=loongarch64-linux-gnu',
       sourceDir.path,
     ],
     workingDirectory: buildDir.path,

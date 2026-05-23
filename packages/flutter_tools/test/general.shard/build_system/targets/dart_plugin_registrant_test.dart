@@ -91,6 +91,7 @@ void main() {
         'linux-x64': false,
         'linux-arm64': false,
         'linux-riscv64': false,
+        'linux-loong64': false,
         'windows-x64': false,
         'web-javascript': true,
         'ios': false,

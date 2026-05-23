@@ -627,6 +627,7 @@ enum TargetPlatform {
   linux_x64,
   linux_arm64,
   linux_riscv64,
+  linux_loong64,
   windows_x64,
   windows_arm64,
   fuchsia_arm64,
@@ -656,6 +657,7 @@ enum TargetPlatform {
       case ios:
       case linux_arm64:
       case linux_riscv64:
+      case linux_loong64:
       case linux_x64:
       case tester:
       case web_javascript:
@@ -671,6 +673,7 @@ enum TargetPlatform {
       case linux_x64:
       case linux_arm64:
       case linux_riscv64:
+      case linux_loong64:
         return 'linux';
       case darwin:
         return 'macos';
@@ -707,6 +710,8 @@ enum TargetPlatform {
         return 'arm64';
       case linux_riscv64:
         return 'riscv64';
+      case linux_loong64:
+        return 'loong64';
       case android:
       case android_arm:
       case android_arm64:
@@ -842,6 +847,7 @@ String getNameForTargetPlatform(TargetPlatform platform, {DarwinArch? darwinArch
     TargetPlatform.linux_x64 => 'linux-x64',
     TargetPlatform.linux_arm64 => 'linux-arm64',
     TargetPlatform.linux_riscv64 => 'linux-riscv64',
+    TargetPlatform.linux_loong64 => 'linux-loong64',
     TargetPlatform.windows_x64 => 'windows-x64',
     TargetPlatform.windows_arm64 => 'windows-arm64',
     TargetPlatform.fuchsia_arm64 => 'fuchsia-arm64',
@@ -868,6 +874,7 @@ TargetPlatform getTargetPlatformForName(String platform) {
     'linux-x64' => TargetPlatform.linux_x64,
     'linux-arm64' => TargetPlatform.linux_arm64,
     'linux-riscv64' => TargetPlatform.linux_riscv64,
+    'linux-loong64' => TargetPlatform.linux_loong64,
     'windows-x64' => TargetPlatform.windows_x64,
     'windows-arm64' => TargetPlatform.windows_arm64,
     'web-javascript' => TargetPlatform.web_javascript,
@@ -904,7 +911,7 @@ HostPlatform getCurrentHostPlatform() {
     };
   }
   if (globals.platform.isLinux) {
-    // support x64 and arm64 architecture.
+    // Support Linux host architectures detected by OperatingSystemUtils.
     return globals.os.hostPlatform;
   }
   if (globals.platform.isWindows) {

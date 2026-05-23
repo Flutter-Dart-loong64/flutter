@@ -353,16 +353,15 @@ void main() {
     expect(processManager, hasNoRemainingExpectations);
   }, overrides: <Type, Generator>{FeatureFlags: () => TestFeatureFlags()});
 
-  testUsingContext(
-    'KernelSnapshot forces platform linking on debug for darwin target platforms',
-    () async {
+  for (final platform in <TargetPlatform>[TargetPlatform.darwin, TargetPlatform.linux_loong64]) {
+    testUsingContext('KernelSnapshot forces platform linking on debug for $platform', () async {
       fileSystem.file('.dart_tool/package_config.json')
         ..createSync(recursive: true)
         ..writeAsStringSync('{"configVersion": 2, "packages":[]}');
       final String build = androidEnvironment.buildDir.path;
       final String flutterPatchedSdkPath = artifacts.getArtifactPath(
         Artifact.flutterPatchedSdkPath,
-        platform: TargetPlatform.darwin,
+        platform: platform,
         mode: BuildMode.debug,
       );
       processManager.addCommands(<FakeCommand>[
@@ -393,14 +392,14 @@ void main() {
 
       await const KernelSnapshot().build(
         androidEnvironment
-          ..defines[kTargetPlatform] = getNameForTargetPlatform(TargetPlatform.darwin)
+          ..defines[kTargetPlatform] = getNameForTargetPlatform(platform)
           ..defines[kBuildMode] = BuildMode.debug.cliName
           ..defines[kTrackWidgetCreation] = 'false',
       );
 
       expect(processManager, hasNoRemainingExpectations);
-    },
-  );
+    });
+  }
 
   testUsingContext(
     'KernelSnapshot sets flavor in dartDefines if found in environment variable for non ios/darwin app',

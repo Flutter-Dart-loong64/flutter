@@ -35,15 +35,13 @@ template("impeller_shaders_gles") {
       gles_language_version = invoker.gles_language_version
     }
 
-    # Metal reflectors generate a superset of information.
-    if (impeller_enable_metal || impeller_enable_vulkan) {
-      if (is_300) {
-        intermediates_subdir = "gles3"
-        mnemonic = "IMPELLERC_GLES3"
-      } else {
-        intermediates_subdir = "gles"
-        mnemonic = "IMPELLERC_GLES2"
-      }
+    if (is_300) {
+      intermediates_subdir = "gles3"
+      mnemonic = "IMPELLERC_GLES3"
+    } else if (impeller_enable_metal || impeller_enable_vulkan) {
+      # Metal and Vulkan reflectors generate a superset of information.
+      intermediates_subdir = "gles"
+      mnemonic = "IMPELLERC_GLES2"
     }
     shader_target_flags = [ "--opengl-es" ]
 
@@ -113,7 +111,7 @@ template("impeller_shaders_gles") {
       public_deps += [ ":$analyze_lib" ]
     }
 
-    if (!impeller_enable_metal && !impeller_enable_vulkan) {
+    if (!is_300 && !impeller_enable_metal && !impeller_enable_vulkan) {
       public_deps += [ ":$reflect_gles" ]
     }
   }
