@@ -696,6 +696,46 @@ ERROR: No file or variants found for asset: images/a_dot_burr.jpeg
   );
 
   testUsingContext(
+    'Linux on LOONG64 build --debug passes debug mode to cmake and ninja',
+    () async {
+      final command = BuildCommand(
+        androidSdk: FakeAndroidSdk(),
+        buildSystem: TestBuildSystem.all(BuildResult(success: true)),
+        fileSystem: fileSystem,
+        logger: logger,
+        osUtils: CustomFakeOperatingSystemUtils(hostPlatform: HostPlatform.linux_loong64),
+        config: FakeConfig(),
+        platform: FakePlatform(),
+        fileSystemUtils: FakeFileSystemUtils(),
+        terminal: FakeTerminal(),
+        plistParser: FakePlistParser(),
+        processUtils: FakeProcessUtils(),
+        processManager: FakeProcessManager.any(),
+        templateRenderer: FakeTemplateRenderer(),
+        xcode: FakeXcode(),
+        artifacts: FakeArtifacts(),
+        cache: FakeCache(),
+        flutterVersion: FakeFlutterVersion(),
+      );
+      setUpMockProjectFilesForBuild();
+      processManager.addCommands(<FakeCommand>[
+        cmakeCommand('debug', target: 'loong64'),
+        ninjaCommand('debug', target: 'loong64'),
+      ]);
+
+      await createTestCommandRunner(
+        command,
+      ).run(const <String>['build', 'linux', '--debug', '--no-pub']);
+    },
+    overrides: <Type, Generator>{
+      FileSystem: () => fileSystem,
+      ProcessManager: () => processManager,
+      Platform: () => linuxPlatform,
+      FeatureFlags: () => TestFeatureFlags(isLinuxEnabled: true),
+    },
+  );
+
+  testUsingContext(
     'Linux on x64 build --profile passes profile mode to make',
     () async {
       final command = BuildCommand(
@@ -966,35 +1006,31 @@ set(BINARY_NAME "fizz_bar")
     },
   );
 
-  testUsingContext(
-    'Refuses to build for Linux when feature is disabled',
-    () {
-      final CommandRunner<void> runner = createTestCommandRunner(
-        BuildCommand(
-          androidSdk: FakeAndroidSdk(),
-          buildSystem: TestBuildSystem.all(BuildResult(success: true)),
-          fileSystem: fileSystem,
-          logger: logger,
-          osUtils: FakeOperatingSystemUtils(),
-          config: FakeConfig(),
-          platform: FakePlatform(),
-          fileSystemUtils: FakeFileSystemUtils(),
-          terminal: FakeTerminal(),
-          plistParser: FakePlistParser(),
-          processUtils: FakeProcessUtils(),
-          processManager: FakeProcessManager.any(),
-          templateRenderer: FakeTemplateRenderer(),
-          xcode: FakeXcode(),
-          artifacts: FakeArtifacts(),
-          cache: FakeCache(),
-          flutterVersion: FakeFlutterVersion(),
-        ),
-      );
+  testUsingContext('Refuses to build for Linux when feature is disabled', () {
+    final CommandRunner<void> runner = createTestCommandRunner(
+      BuildCommand(
+        androidSdk: FakeAndroidSdk(),
+        buildSystem: TestBuildSystem.all(BuildResult(success: true)),
+        fileSystem: fileSystem,
+        logger: logger,
+        osUtils: FakeOperatingSystemUtils(),
+        config: FakeConfig(),
+        platform: FakePlatform(),
+        fileSystemUtils: FakeFileSystemUtils(),
+        terminal: FakeTerminal(),
+        plistParser: FakePlistParser(),
+        processUtils: FakeProcessUtils(),
+        processManager: FakeProcessManager.any(),
+        templateRenderer: FakeTemplateRenderer(),
+        xcode: FakeXcode(),
+        artifacts: FakeArtifacts(),
+        cache: FakeCache(),
+        flutterVersion: FakeFlutterVersion(),
+      ),
+    );
 
-      expect(() => runner.run(<String>['build', 'linux', '--no-pub']), throwsToolExit());
-    },
-    overrides: <Type, Generator>{FeatureFlags: () => TestFeatureFlags()},
-  );
+    expect(() => runner.run(<String>['build', 'linux', '--no-pub']), throwsToolExit());
+  }, overrides: <Type, Generator>{FeatureFlags: () => TestFeatureFlags()});
 
   testUsingContext(
     'hidden when not enabled on Linux host',

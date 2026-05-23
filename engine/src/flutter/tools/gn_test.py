@@ -29,6 +29,8 @@ class GNTestCase(unittest.TestCase):
     self._expect_build_dir(['--android'], os.path.join('out', 'android_debug'))
     self._expect_build_dir(['--android', '--runtime-mode', 'release'],
                            os.path.join('out', 'android_release'))
+    self._expect_build_dir(['--linux', '--linux-cpu', 'loong64'],
+                           os.path.join('out', 'linux_debug_loong64'))
 
   def _gn_args(self, arg_list):
     args = gn.parse_args(['gn'] + arg_list)
@@ -40,6 +42,9 @@ class GNTestCase(unittest.TestCase):
         self._gn_args(['--ios', '--simulator', '--simulator-cpu', 'x64'])['target_cpu'], 'x64'
     )
     self.assertEqual(self._gn_args(['--ios'])['target_cpu'], 'arm64')
+    self.assertEqual(
+        self._gn_args(['--linux', '--linux-cpu', 'loong64'])['target_cpu'], 'loong64'
+    )
 
   def test_cannot_use_android_and_enable_unittests(self):
     with self.assertRaises(Exception):

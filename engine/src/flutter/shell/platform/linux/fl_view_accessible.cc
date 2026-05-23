@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <type_traits>
+
 // Workaround missing C code compatibility in ATK header.
 // Fixed in https://gitlab.gnome.org/GNOME/at-spi2-core/-/merge_requests/219
 extern "C" {

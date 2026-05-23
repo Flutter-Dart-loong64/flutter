@@ -43,6 +43,8 @@ class LinuxDevice extends DesktopDevice {
       return TargetPlatform.linux_x64;
     } else if (_operatingSystemUtils.hostPlatform == HostPlatform.linux_riscv64) {
       return TargetPlatform.linux_riscv64;
+    } else if (_operatingSystemUtils.hostPlatform == HostPlatform.linux_loong64) {
+      return TargetPlatform.linux_loong64;
     }
     return TargetPlatform.linux_arm64;
   }();

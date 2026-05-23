@@ -170,6 +170,10 @@ void main() {
       const DebugBundleLinuxAssets(TargetPlatform.linux_arm64).name,
       'debug_bundle_linux-arm64_assets',
     );
+    expect(
+      const DebugBundleLinuxAssets(TargetPlatform.linux_loong64).name,
+      'debug_bundle_linux-loong64_assets',
+    );
   });
 
   testUsingContext(
@@ -215,6 +219,10 @@ void main() {
       const ProfileBundleLinuxAssets(TargetPlatform.linux_arm64).name,
       'profile_bundle_linux-arm64_assets',
     );
+    expect(
+      const ProfileBundleLinuxAssets(TargetPlatform.linux_loong64).name,
+      'profile_bundle_linux-loong64_assets',
+    );
   });
 
   testUsingContext(
@@ -259,6 +267,10 @@ void main() {
     expect(
       const ReleaseBundleLinuxAssets(TargetPlatform.linux_arm64).name,
       'release_bundle_linux-arm64_assets',
+    );
+    expect(
+      const ReleaseBundleLinuxAssets(TargetPlatform.linux_loong64).name,
+      'release_bundle_linux-loong64_assets',
     );
   });
 }

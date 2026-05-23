@@ -30,6 +30,8 @@ const unameCommandForX64 = FakeCommand(command: <String>['uname', '-m'], stdout:
 
 const unameCommandForArm64 = FakeCommand(command: <String>['uname', '-m'], stdout: 'aarch64');
 
+const unameCommandForLoong64 = FakeCommand(command: <String>['uname', '-m'], stdout: 'loongarch64');
+
 void main() {
   late FakeProcessManager fakeProcessManager;
 
@@ -1106,6 +1108,18 @@ void main() {
     ]);
   });
 
+  testWithoutContext('FontSubset artifacts on loong64 linux', () {
+    fakeProcessManager.addCommand(unameCommandForLoong64);
+
+    final Cache cache = createCache(FakePlatform());
+    final artifacts = FontSubsetArtifacts(cache, platform: FakePlatform());
+    cache.includeAllPlatforms = false;
+
+    expect(artifacts.getBinaryDirs(), <List<String>>[
+      <String>['linux-loong64', 'linux-loong64/font-subset.zip'],
+    ]);
+  });
+
   testWithoutContext('FontSubset artifacts on windows', () {
     final Cache cache = createCache(FakePlatform(operatingSystem: 'windows'));
     final artifacts = FontSubsetArtifacts(
@@ -1270,6 +1284,95 @@ void main() {
       <String>['linux-arm64-release', 'linux-arm64-release/linux-arm64-flutter-gtk.zip'],
     ]);
   });
+
+  testWithoutContext(
+    'Linux desktop artifacts for loong64 include profile and release artifacts',
+    () {
+      fakeProcessManager.addCommand(unameCommandForLoong64);
+
+      final Cache cache = createCache(FakePlatform());
+      final artifacts = LinuxEngineArtifacts(cache, platform: FakePlatform());
+
+      expect(artifacts.getBinaryDirs(), <List<String>>[
+        <String>['linux-loong64', 'linux-loong64-debug/linux-loong64-flutter-gtk.zip'],
+        <String>['linux-loong64-profile', 'linux-loong64-profile/linux-loong64-flutter-gtk.zip'],
+        <String>['linux-loong64-release', 'linux-loong64-release/linux-loong64-flutter-gtk.zip'],
+      ]);
+    },
+  );
+
+  testWithoutContext(
+    'Android gen_snapshot artifacts on x64 linux host include linux-x64 archives',
+    () {
+      fakeProcessManager.addCommand(unameCommandForX64);
+
+      final Cache cache = createCache(FakePlatform());
+      final artifacts = AndroidGenSnapshotArtifacts(cache, platform: FakePlatform());
+
+      expect(artifacts.getBinaryDirs(), <List<String>>[
+        <String>['android-arm-profile/linux-x64', 'android-arm-profile/linux-x64.zip'],
+        <String>['android-arm-release/linux-x64', 'android-arm-release/linux-x64.zip'],
+        <String>['android-arm64-profile/linux-x64', 'android-arm64-profile/linux-x64.zip'],
+        <String>['android-arm64-release/linux-x64', 'android-arm64-release/linux-x64.zip'],
+        <String>['android-x64-profile/linux-x64', 'android-x64-profile/linux-x64.zip'],
+        <String>['android-x64-release/linux-x64', 'android-x64-release/linux-x64.zip'],
+      ]);
+    },
+  );
+
+  testWithoutContext(
+    'Android gen_snapshot artifacts on arm64 linux host keep existing linux-x64 archives',
+    () {
+      fakeProcessManager.addCommand(unameCommandForArm64);
+
+      final Cache cache = createCache(FakePlatform());
+      final artifacts = AndroidGenSnapshotArtifacts(cache, platform: FakePlatform());
+
+      expect(artifacts.getBinaryDirs(), <List<String>>[
+        <String>['android-arm-profile/linux-x64', 'android-arm-profile/linux-x64.zip'],
+        <String>['android-arm-release/linux-x64', 'android-arm-release/linux-x64.zip'],
+        <String>['android-arm64-profile/linux-x64', 'android-arm64-profile/linux-x64.zip'],
+        <String>['android-arm64-release/linux-x64', 'android-arm64-release/linux-x64.zip'],
+        <String>['android-x64-profile/linux-x64', 'android-x64-profile/linux-x64.zip'],
+        <String>['android-x64-release/linux-x64', 'android-x64-release/linux-x64.zip'],
+      ]);
+    },
+  );
+
+  testWithoutContext(
+    'Android gen_snapshot artifacts on loong64 linux host include linux-loong64 archives',
+    () {
+      fakeProcessManager.addCommand(unameCommandForLoong64);
+
+      final Cache cache = createCache(FakePlatform());
+      final artifacts = AndroidGenSnapshotArtifacts(cache, platform: FakePlatform());
+
+      expect(artifacts.getBinaryDirs(), <List<String>>[
+        <String>['android-arm-profile/linux-loong64', 'android-arm-profile/linux-loong64.zip'],
+        <String>['android-arm-release/linux-loong64', 'android-arm-release/linux-loong64.zip'],
+        <String>['android-arm64-profile/linux-loong64', 'android-arm64-profile/linux-loong64.zip'],
+        <String>['android-arm64-release/linux-loong64', 'android-arm64-release/linux-loong64.zip'],
+        <String>['android-x64-profile/linux-loong64', 'android-x64-profile/linux-loong64.zip'],
+        <String>['android-x64-release/linux-loong64', 'android-x64-release/linux-loong64.zip'],
+      ]);
+    },
+  );
+
+  testWithoutContext(
+    'Android gen_snapshot artifacts for all platforms include linux-loong64 Dart SDK',
+    () {
+      fakeProcessManager.addCommand(unameCommandForX64);
+
+      final Cache cache = createCache(FakePlatform());
+      final artifacts = AndroidGenSnapshotArtifacts(cache, platform: FakePlatform());
+      cache.includeAllPlatforms = true;
+
+      expect(
+        artifacts.getBinaryDirs(),
+        contains(equals(<String>['linux-loong64', 'dart-sdk-linux-loong64.zip'])),
+      );
+    },
+  );
 
   testWithoutContext('Cache can delete stampfiles of artifacts', () {
     final FileSystem fileSystem = MemoryFileSystem.test();

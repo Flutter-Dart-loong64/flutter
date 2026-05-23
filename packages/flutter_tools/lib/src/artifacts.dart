@@ -31,6 +31,7 @@ enum Artifact {
   genSnapshot('gen_snapshot'),
   genSnapshotArm64('gen_snapshot_arm64'),
   genSnapshotRiscv64('gen_snapshot_riscv64'),
+  genSnapshotLoong64('gen_snapshot_loong64'),
   genSnapshotX64('gen_snapshot_x64'),
 
   /// The flutter tester binary.
@@ -213,6 +214,7 @@ TargetPlatform? _mapTargetPlatform(TargetPlatform? targetPlatform) {
     case TargetPlatform.linux_x64:
     case TargetPlatform.linux_arm64:
     case TargetPlatform.linux_riscv64:
+    case TargetPlatform.linux_loong64:
     case TargetPlatform.windows_x64:
     case TargetPlatform.windows_arm64:
     case TargetPlatform.fuchsia_arm64:
@@ -435,6 +437,7 @@ class CachedArtifacts implements Artifacts {
       case TargetPlatform.linux_x64:
       case TargetPlatform.linux_arm64:
       case TargetPlatform.linux_riscv64:
+      case TargetPlatform.linux_loong64:
       case TargetPlatform.windows_x64:
       case TargetPlatform.windows_arm64:
         return _getDesktopArtifactPath(artifact, platform!, mode);
@@ -467,6 +470,7 @@ class CachedArtifacts implements Artifacts {
       case Artifact.genSnapshot:
       case Artifact.genSnapshotArm64:
       case Artifact.genSnapshotRiscv64:
+      case Artifact.genSnapshotLoong64:
       case Artifact.genSnapshotX64:
         return _fileSystem.path.join(engineDir, artifact.getFileName(_platform));
       case Artifact.engineDartSdkPath:
@@ -508,6 +512,7 @@ class CachedArtifacts implements Artifacts {
       case Artifact.genSnapshot:
       case Artifact.genSnapshotArm64:
       case Artifact.genSnapshotRiscv64:
+      case Artifact.genSnapshotLoong64:
       case Artifact.genSnapshotX64:
         assert(mode != BuildMode.debug, 'Artifact $artifact only available in non-debug mode.');
 
@@ -562,6 +567,7 @@ class CachedArtifacts implements Artifacts {
       case Artifact.genSnapshot:
       case Artifact.genSnapshotArm64:
       case Artifact.genSnapshotRiscv64:
+      case Artifact.genSnapshotLoong64:
       case Artifact.genSnapshotX64:
       case Artifact.flutterXcframework:
         final String artifactFileName = artifact.getFileName(_platform);
@@ -615,6 +621,7 @@ class CachedArtifacts implements Artifacts {
         return _fileSystem.path.join(root, runtime, 'dart_binaries', genSnapshot);
       case Artifact.genSnapshotArm64:
       case Artifact.genSnapshotRiscv64:
+      case Artifact.genSnapshotLoong64:
       case Artifact.genSnapshotX64:
         throw ArgumentError('$artifact is not available on this platform');
       case Artifact.flutterPatchedSdkPath:
@@ -674,6 +681,7 @@ class CachedArtifacts implements Artifacts {
       case Artifact.genSnapshot:
       case Artifact.genSnapshotArm64:
       case Artifact.genSnapshotRiscv64:
+      case Artifact.genSnapshotLoong64:
       case Artifact.genSnapshotX64:
         // For script snapshots any gen_snapshot binary will do. Returning gen_snapshot for
         // android_arm in profile mode because it is available on all supported host platforms.
@@ -789,6 +797,7 @@ class CachedArtifacts implements Artifacts {
       case TargetPlatform.linux_x64:
       case TargetPlatform.linux_arm64:
       case TargetPlatform.linux_riscv64:
+      case TargetPlatform.linux_loong64:
       case TargetPlatform.darwin:
       case TargetPlatform.windows_x64:
       case TargetPlatform.windows_arm64:
@@ -833,6 +842,7 @@ TargetPlatform _currentHostPlatform(Platform platform, OperatingSystemUtils oper
     return switch (operatingSystemUtils.hostPlatform) {
       HostPlatform.linux_x64 => TargetPlatform.linux_x64,
       HostPlatform.linux_riscv64 => TargetPlatform.linux_riscv64,
+      HostPlatform.linux_loong64 => TargetPlatform.linux_loong64,
       _ => TargetPlatform.linux_arm64,
     };
   }
@@ -1070,6 +1080,7 @@ class CachedLocalEngineArtifacts implements Artifacts {
       case Artifact.genSnapshot:
       case Artifact.genSnapshotArm64:
       case Artifact.genSnapshotRiscv64:
+      case Artifact.genSnapshotLoong64:
       case Artifact.genSnapshotX64:
         return _genSnapshotPath(artifact);
       case Artifact.flutterTester:
@@ -1281,6 +1292,7 @@ class CachedLocalWebSdkArtifacts implements Artifacts {
         case Artifact.genSnapshot:
         case Artifact.genSnapshotArm64:
         case Artifact.genSnapshotRiscv64:
+        case Artifact.genSnapshotLoong64:
         case Artifact.genSnapshotX64:
         case Artifact.flutterTester:
         case Artifact.flutterFramework:
@@ -1581,6 +1593,8 @@ String _getPrebuiltTarget(Platform platform, OperatingSystemUtils operatingSyste
       return 'macos-x64';
     case TargetPlatform.linux_riscv64:
       return 'linux-riscv64';
+    case TargetPlatform.linux_loong64:
+      return 'linux-loong64';
     case TargetPlatform.linux_arm64:
       return 'linux-arm64';
     case TargetPlatform.linux_x64:

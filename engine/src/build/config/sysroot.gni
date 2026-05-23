@@ -31,10 +31,14 @@ if (current_toolchain == default_toolchain && target_sysroot != "") {
     } else if (current_cpu == "riscv64") {
       sysroot =
           rebase_path("//build/linux/debian_trixie_riscv64-sysroot", root_build_dir)
+    } else if (current_cpu == "loong64") {
+      sysroot = ""
     }
-    assert(
-        exec_script("//build/dir_exists.py", [ sysroot ], "string") == "True",
-        "Missing sysroot ($sysroot). To fix, run: build/linux/sysroot_scripts/install-sysroot.py --arch=$current_cpu")
+    if (sysroot != "") {
+      assert(
+          exec_script("//build/dir_exists.py", [ sysroot ], "string") == "True",
+          "Missing sysroot ($sysroot). To fix, run: build/linux/sysroot_scripts/install-sysroot.py --arch=$current_cpu")
+    }
   } else {
     sysroot = ""
   }

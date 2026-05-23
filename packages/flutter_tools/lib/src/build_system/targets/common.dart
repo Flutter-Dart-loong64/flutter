@@ -242,6 +242,9 @@ class KernelSnapshot extends Target {
       case TargetPlatform.windows_x64:
       case TargetPlatform.windows_arm64:
       case TargetPlatform.linux_x64:
+      case TargetPlatform.linux_arm64:
+      case TargetPlatform.linux_riscv64:
+      case TargetPlatform.linux_loong64:
         forceLinkPlatform = true;
       case TargetPlatform.android:
       case TargetPlatform.android_arm:
@@ -250,8 +253,6 @@ class KernelSnapshot extends Target {
       case TargetPlatform.fuchsia_arm64:
       case TargetPlatform.fuchsia_x64:
       case TargetPlatform.ios:
-      case TargetPlatform.linux_arm64:
-      case TargetPlatform.linux_riscv64:
       case TargetPlatform.tester:
       case TargetPlatform.web_javascript:
         forceLinkPlatform = false;
@@ -269,6 +270,7 @@ class KernelSnapshot extends Target {
       TargetPlatform.ios => 'ios',
       TargetPlatform.linux_arm64 ||
       TargetPlatform.linux_riscv64 ||
+      TargetPlatform.linux_loong64 ||
       TargetPlatform.linux_x64 => 'linux',
       TargetPlatform.windows_arm64 || TargetPlatform.windows_x64 => 'windows',
       TargetPlatform.tester || TargetPlatform.web_javascript => null,

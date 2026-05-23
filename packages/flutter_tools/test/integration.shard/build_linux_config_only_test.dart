@@ -36,7 +36,12 @@ void main() {
       ];
       await processManager.run(buildCommand, workingDirectory: workingDirectory);
 
-      final arch = Abi.current() == Abi.linuxArm64 ? 'arm64' : 'x64';
+      final String arch = switch (Abi.current().toString()) {
+        'Abi.linuxArm64' => 'arm64',
+        'Abi.linuxLoong64' => 'loong64',
+        'Abi.linuxRiscv64' => 'riscv64',
+        _ => 'x64',
+      };
 
       // Build file should be created.
       final File generatedConfig = fileSystem.file(

@@ -970,6 +970,7 @@ OS getNativeOSFromTargetPlatform(TargetPlatform platform) {
     case TargetPlatform.linux_x64:
     case TargetPlatform.linux_arm64:
     case TargetPlatform.linux_riscv64:
+    case TargetPlatform.linux_loong64:
       return OS.linux;
     case TargetPlatform.windows_x64:
     case TargetPlatform.windows_arm64:
@@ -1000,29 +1001,31 @@ OS getNativeOSFromTargetPlatform(TargetPlatform platform) {
 }
 
 extension OSArchitectures on OS {
-  Set<Architecture> get architectures => _osTargets[this]!;
+  Set<Architecture> get architectures => switch (this) {
+    OS.android => <Architecture>{
+      Architecture.arm,
+      Architecture.arm64,
+      Architecture.ia32,
+      Architecture.x64,
+      Architecture.riscv64,
+    },
+    OS.fuchsia => <Architecture>{Architecture.arm64, Architecture.x64},
+    OS.iOS => <Architecture>{Architecture.arm, Architecture.arm64, Architecture.x64},
+    OS.linux => _linuxArchitectures,
+    OS.macOS => <Architecture>{Architecture.arm64, Architecture.x64},
+    OS.windows => <Architecture>{Architecture.arm64, Architecture.ia32, Architecture.x64},
+    OS() => throwToolExit('Unsupported native assets OS: $this.'),
+  };
 }
 
-const _osTargets = <OS, Set<Architecture>>{
-  OS.android: <Architecture>{
-    Architecture.arm,
-    Architecture.arm64,
-    Architecture.ia32,
-    Architecture.x64,
-    Architecture.riscv64,
-  },
-  OS.fuchsia: <Architecture>{Architecture.arm64, Architecture.x64},
-  OS.iOS: <Architecture>{Architecture.arm, Architecture.arm64, Architecture.x64},
-  OS.linux: <Architecture>{
-    Architecture.arm,
-    Architecture.arm64,
-    Architecture.ia32,
-    Architecture.riscv32,
-    Architecture.riscv64,
-    Architecture.x64,
-  },
-  OS.macOS: <Architecture>{Architecture.arm64, Architecture.x64},
-  OS.windows: <Architecture>{Architecture.arm64, Architecture.ia32, Architecture.x64},
+Set<Architecture> get _linuxArchitectures => <Architecture>{
+  Architecture.arm,
+  Architecture.arm64,
+  Architecture.ia32,
+  Architecture.loong64,
+  Architecture.riscv32,
+  Architecture.riscv64,
+  Architecture.x64,
 };
 
 BuildMode _getBuildMode(Map<String, String> environmentDefines, bool isFlutterTester) {

@@ -56,6 +56,16 @@ void main() {
     expect(await deviceArm64Host.targetPlatform, TargetPlatform.linux_arm64);
   });
 
+  testWithoutContext('LinuxDevice on loong64 hosts is loong64', () async {
+    final deviceLoong64Host = LinuxDevice(
+      processManager: FakeProcessManager.any(),
+      logger: BufferLogger.test(),
+      fileSystem: MemoryFileSystem.test(),
+      operatingSystemUtils: FakeOperatingSystemUtils(hostPlatform: HostPlatform.linux_loong64),
+    );
+    expect(await deviceLoong64Host.targetPlatform, TargetPlatform.linux_loong64);
+  });
+
   testWithoutContext('LinuxDevice: no devices listed if platform unsupported', () async {
     expect(
       await LinuxDevices(

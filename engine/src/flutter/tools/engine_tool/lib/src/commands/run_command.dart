@@ -262,6 +262,7 @@ final class RunTarget {
       TargetPlatform.darwinArm64 ||
       TargetPlatform.linuxArm64 ||
       TargetPlatform.windowsArm64 => 'host_${mode}_arm64',
+      TargetPlatform.linuxLoong64 => 'host_${mode}_loong64',
 
       // WEB
       TargetPlatform.webJavascript => 'chrome_$mode',
@@ -324,7 +325,7 @@ final class RunTarget {
         [Label.parseGn('//flutter/shell/platform/darwin/macos:flutter_framework')],
 
       // Desktop (Linux).
-      TargetPlatform.linuxX64 || TargetPlatform.linuxArm64 => [
+      TargetPlatform.linuxX64 || TargetPlatform.linuxArm64 || TargetPlatform.linuxLoong64 => [
         Label.parseGn('//flutter/shell/platform/linux:flutter_linux_gtk'),
       ],
 

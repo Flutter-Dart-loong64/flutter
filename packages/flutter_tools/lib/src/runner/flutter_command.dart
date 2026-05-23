@@ -2198,6 +2198,7 @@ DevelopmentArtifact? artifactFromTargetPlatform(TargetPlatform targetPlatform) {
     case TargetPlatform.linux_x64:
     case TargetPlatform.linux_arm64:
     case TargetPlatform.linux_riscv64:
+    case TargetPlatform.linux_loong64:
       if (featureFlags.isLinuxEnabled) {
         return DevelopmentArtifact.linux;
       }

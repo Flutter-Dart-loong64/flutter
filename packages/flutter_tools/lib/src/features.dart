@@ -85,6 +85,9 @@ abstract class FeatureFlags {
   /// Whether riscv64 support is enabled.
   bool get isRiscv64SupportEnabled;
 
+  /// Whether loong64 support is enabled.
+  bool get isLoong64SupportEnabled;
+
   /// Whether a particular feature is enabled for the current channel.
   ///
   /// Prefer using one of the specific getters above instead of this API.
@@ -111,6 +114,7 @@ abstract class FeatureFlags {
     lldbDebugging,
     uiSceneMigration,
     riscv64,
+    loong64,
   ];
 
   /// All current Flutter feature flags that can be configured.
@@ -297,11 +301,21 @@ const uiSceneMigration = Feature(
   stable: FeatureChannelSetting(available: true, enabledByDefault: true),
 );
 
-/// The [Feature] for building code targetting riscv64 architecture
+/// The [Feature] for building code targetting riscv64 architecture.
 const riscv64 = Feature(
   name: 'support for riscv64 architecture',
   configSetting: 'enable-riscv64',
   environmentOverride: 'FLUTTER_RISCV64',
+  master: FeatureChannelSetting(available: true, enabledByDefault: true),
+  beta: FeatureChannelSetting(available: true),
+  stable: FeatureChannelSetting(available: true),
+);
+
+/// The [Feature] for building code targetting loong64 architecture.
+const loong64 = Feature(
+  name: 'support for loong64 architecture',
+  configSetting: 'enable-loong64',
+  environmentOverride: 'FLUTTER_LOONG64',
   master: FeatureChannelSetting(available: true, enabledByDefault: true),
   beta: FeatureChannelSetting(available: true),
   stable: FeatureChannelSetting(available: true),

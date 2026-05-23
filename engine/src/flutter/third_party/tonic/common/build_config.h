@@ -98,6 +98,11 @@
 #define ARCH_CPU_RISCV64 1
 #define ARCH_CPU_64_BITS 1
 #define ARCH_CPU_LITTLE_ENDIAN 1
+#elif defined(__loongarch64)
+#define ARCH_CPU_LOONGARCH_FAMILY 1
+#define ARCH_CPU_LOONG64 1
+#define ARCH_CPU_64_BITS 1
+#define ARCH_CPU_LITTLE_ENDIAN 1
 #elif defined(__pnacl__)
 #define ARCH_CPU_32_BITS 1
 #define ARCH_CPU_LITTLE_ENDIAN 1
