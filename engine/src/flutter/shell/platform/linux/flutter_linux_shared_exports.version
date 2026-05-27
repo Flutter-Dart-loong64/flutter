@@ -1,0 +1,11 @@
+{
+  global:
+    fl_*;
+    Flutter*;
+    InternalFlutterGpu*;
+    kDart*;
+    kInternalFlutterGpu*;
+
+  local:
+    *;
+};

@@ -81,6 +81,15 @@ config("disable_warnings") {
   cflags_cc = warning_flags
 }
 
+config("flutter_linux_shared_exports") {
+  visibility = [ ":*" ]
+  inputs = [ "flutter_linux_shared_exports.version" ]
+  ldflags = [
+    "-Wl,--version-script=" + rebase_path(inputs[0], root_build_dir),
+    "-Wl,--no-eh-frame-hdr",
+  ]
+}
+
 source_set("flutter_linux_sources") {
   public = _public_headers + [
              "fl_binary_messenger_private.h",
@@ -313,6 +322,8 @@ executable("flutter_linux_unittests") {
 
 shared_library("flutter_linux_gtk") {
   deps = [ ":flutter_linux" ]
+
+  configs += [ ":flutter_linux_shared_exports" ]
 
   ldflags = [ "-Wl,-rpath,\$ORIGIN" ]
 
