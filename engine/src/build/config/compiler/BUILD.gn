@@ -397,11 +397,11 @@ config("compiler") {
     cflags += [ "-pthread" ]
     ldflags += [ "-pthread" ]
 
-    if (current_cpu == "arm64") {
+    if (is_clang && current_cpu == "arm64") {
       cflags += [ "--target=aarch64-linux-gnu" ]
       ldflags += [ "--target=aarch64-linux-gnu" ]
       cflags += [ "-DBORINGSSL_CLANG_SUPPORTS_DOT_ARCH" ]
-    } else if (current_cpu == "loong64") {
+    } else if (is_clang && current_cpu == "loong64") {
       cflags += [ "--target=loongarch64-linux-gnu" ]
       ldflags += [
         "--target=loongarch64-linux-gnu",
