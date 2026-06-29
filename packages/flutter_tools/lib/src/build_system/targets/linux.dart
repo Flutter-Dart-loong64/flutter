@@ -18,8 +18,16 @@ import 'desktop.dart';
 import 'icon_tree_shaker.dart';
 import 'native_assets.dart';
 
-/// The only files/subdirectories we care out.
+/// The required files/subdirectories copied from the Linux engine cache.
 const _kLinuxArtifacts = <String>['libflutter_linux_gtk.so'];
+
+/// Optional runtime libraries shipped by self-contained Linux engine caches.
+const _kLinuxBundledRuntimeArtifacts = <String>[
+  'libstdc++.so',
+  'libstdc++.so.6',
+  'libgcc_s.so',
+  'libgcc_s.so.1',
+];
 
 const _kLinuxDepfile = 'linux_engine_sources.d';
 
@@ -63,6 +71,14 @@ class UnpackLinux extends Target {
       mode: buildMode,
       platform: targetPlatform,
     );
+    final artifacts = <String>[..._kLinuxArtifacts];
+    for (final String runtimeArtifact in _kLinuxBundledRuntimeArtifacts) {
+      if (environment.fileSystem.file(
+        environment.fileSystem.path.join(engineSourcePath, runtimeArtifact),
+      ).existsSync()) {
+        artifacts.add(runtimeArtifact);
+      }
+    }
     final Directory outputDirectory = environment.fileSystem.directory(
       environment.fileSystem.path.join(
         environment.projectDir.path,
@@ -75,7 +91,7 @@ class UnpackLinux extends Target {
       fileSystem: environment.fileSystem,
       engineSourcePath: engineSourcePath,
       outputDirectory: outputDirectory,
-      artifacts: _kLinuxArtifacts,
+      artifacts: artifacts,
       clientSourcePaths: <String>[headersPath],
       icuDataPath: environment.artifacts.getArtifactPath(
         Artifact.icuData,

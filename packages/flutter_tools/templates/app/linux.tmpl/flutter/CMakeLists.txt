@@ -27,9 +27,22 @@ pkg_check_modules(GLIB REQUIRED IMPORTED_TARGET glib-2.0)
 pkg_check_modules(GIO REQUIRED IMPORTED_TARGET gio-2.0)
 
 set(FLUTTER_LIBRARY "${EPHEMERAL_DIR}/libflutter_linux_gtk.so")
+set(FLUTTER_BUNDLED_LIBRARIES "")
+foreach(flutter_runtime_library
+  "libstdc++.so"
+  "libstdc++.so.6"
+  "libgcc_s.so"
+  "libgcc_s.so.1"
+)
+  set(flutter_runtime_library_path "${EPHEMERAL_DIR}/${flutter_runtime_library}")
+  if(FLUTTER_TARGET_PLATFORM STREQUAL "linux-loong64" OR EXISTS "${flutter_runtime_library_path}")
+    list(APPEND FLUTTER_BUNDLED_LIBRARIES "${flutter_runtime_library_path}")
+  endif()
+endforeach(flutter_runtime_library)
 
 # Published to parent scope for install step.
 set(FLUTTER_LIBRARY ${FLUTTER_LIBRARY} PARENT_SCOPE)
+set(FLUTTER_BUNDLED_LIBRARIES ${FLUTTER_BUNDLED_LIBRARIES} PARENT_SCOPE)
 set(FLUTTER_ICU_DATA_FILE "${EPHEMERAL_DIR}/icudtl.dat" PARENT_SCOPE)
 set(PROJECT_BUILD_DIR "${PROJECT_DIR}/build/" PARENT_SCOPE)
 set(AOT_LIBRARY "${PROJECT_DIR}/build/lib/libapp.so" PARENT_SCOPE)
@@ -62,6 +75,9 @@ target_include_directories(flutter INTERFACE
   "${EPHEMERAL_DIR}"
 )
 target_link_libraries(flutter INTERFACE "${FLUTTER_LIBRARY}")
+if(FLUTTER_BUNDLED_LIBRARIES)
+  target_link_libraries(flutter INTERFACE ${FLUTTER_BUNDLED_LIBRARIES})
+endif()
 target_link_libraries(flutter INTERFACE
   PkgConfig::GTK
   PkgConfig::GLIB
@@ -75,6 +91,7 @@ add_dependencies(flutter flutter_assemble)
 # flutter tool.
 add_custom_command(
   OUTPUT ${FLUTTER_LIBRARY} ${FLUTTER_LIBRARY_HEADERS}
+    ${FLUTTER_BUNDLED_LIBRARIES}
     ${CMAKE_CURRENT_BINARY_DIR}/_phony_
   COMMAND ${CMAKE_COMMAND} -E env
     ${FLUTTER_TOOL_ENVIRONMENT}
@@ -85,4 +102,5 @@ add_custom_command(
 add_custom_target(flutter_assemble DEPENDS
   "${FLUTTER_LIBRARY}"
   ${FLUTTER_LIBRARY_HEADERS}
+  ${FLUTTER_BUNDLED_LIBRARIES}
 )
