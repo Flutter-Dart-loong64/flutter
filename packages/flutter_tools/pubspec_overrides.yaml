@@ -2,20 +2,20 @@ dependency_overrides:
   hooks_runner:
     git:
       url: https://github.com/Flutter-Dart-loong64/native.git
-      ref: loong64-main
+      ref: 749b78cc64295a37701702d46e2b173f6d5f219c
       path: pkgs/hooks_runner
   hooks:
     git:
       url: https://github.com/Flutter-Dart-loong64/native.git
-      ref: loong64-main
+      ref: 749b78cc64295a37701702d46e2b173f6d5f219c
       path: pkgs/hooks
   code_assets:
     git:
       url: https://github.com/Flutter-Dart-loong64/native.git
-      ref: loong64-main
+      ref: 749b78cc64295a37701702d46e2b173f6d5f219c
       path: pkgs/code_assets
   data_assets:
     git:
       url: https://github.com/Flutter-Dart-loong64/native.git
-      ref: loong64-main
+      ref: 749b78cc64295a37701702d46e2b173f6d5f219c
       path: pkgs/data_assets
