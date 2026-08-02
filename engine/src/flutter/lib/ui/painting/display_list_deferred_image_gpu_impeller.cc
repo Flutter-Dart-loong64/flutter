@@ -12,7 +12,11 @@
 // Disable a warning on Windows about use of deprecated atomic operations
 // on std::shared_ptr.  These functions are used because libcxx does not
 // yet support std::atomic<std::shared_ptr>.
+#if defined(__clang__)
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 namespace flutter {
 

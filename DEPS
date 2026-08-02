@@ -253,7 +253,7 @@ deps = {
    Var('chromium_git') + '/external/github.com/google/shaderc' + '@' + 'd15277d6bc180f6a0b8b601f0cab2bbcaac9b4d5',
 
   'engine/src/flutter/third_party/vulkan-deps':
-   Var('chromium_git') + '/vulkan-deps' + '@' + 'a9e2ca3b57aba86a22a2df1b84bf12f8cc98806e',
+   'https://github.com/Flutter-Dart-loong64/vulkan-deps.git' + '@' + '4a5f0af7849828c5c2bf7da417e8d651c1e83e2d',
 
   'engine/src/flutter/third_party/flatbuffers':
    Var('chromium_git') + '/external/github.com/google/flatbuffers' + '@' + '067bfdbde9b10c1beb5d6b02d67ae9db8b96f736',

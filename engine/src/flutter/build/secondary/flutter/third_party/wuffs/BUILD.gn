@@ -18,6 +18,10 @@ config("wuffs_public") {
 source_set("wuffs") {
   public_configs = [ ":wuffs_public" ]
 
+  if (is_linux && current_cpu == "loong64" && !is_clang) {
+    cflags = [ "-Wno-error=calloc-transposed-args" ]
+  }
+
   defines = [
     # Copy/pasting from "../externals/wuffs/release/c/wuffs-*.c":
     #
