@@ -4,6 +4,8 @@
 
 #include "flutter/display_list/geometry/dl_region.h"
 
+#include <cstring>
+
 #include "flutter/fml/logging.h"
 
 namespace flutter {

@@ -4,6 +4,8 @@
 
 #include "flutter/shell/platform/embedder/embedder_surface.h"
 
+#include "third_party/skia/include/gpu/ganesh/GrDirectContext.h"
+
 namespace flutter {
 
 EmbedderSurface::EmbedderSurface() = default;

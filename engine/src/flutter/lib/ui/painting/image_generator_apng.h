@@ -15,7 +15,7 @@
   T name;                                 \
                                           \
  public:                                  \
-  T get_##name() const {                  \
+  constexpr T get_##name() const {        \
     return fml::BigEndianToArch<T>(name); \
   }                                       \
   void set_##name(T n) {                  \

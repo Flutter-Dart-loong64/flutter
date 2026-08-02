@@ -4,6 +4,8 @@
 
 #include "flutter/display_list/dl_vertices.h"
 
+#include <cstring>
+
 #include "flutter/display_list/utils/dl_accumulation_rect.h"
 #include "flutter/fml/logging.h"
 

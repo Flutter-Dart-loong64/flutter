@@ -4,6 +4,8 @@
 
 #include "impeller/renderer/backend/vulkan/pipeline_cache_data_vk.h"
 
+#include <cstring>
+
 #include "flutter/fml/file.h"
 #include "impeller/base/allocation.h"
 #include "impeller/base/validation.h"

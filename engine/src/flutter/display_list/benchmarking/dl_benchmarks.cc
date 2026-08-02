@@ -724,8 +724,8 @@ std::vector<DlPoint> GetPolygonPoints(size_t n, DlPoint center, DlScalar r) {
   float full_circle = 2.0f * M_PI;
   for (size_t i = 0; i < n; i++) {
     angle = (full_circle / static_cast<float>(n)) * static_cast<float>(i);
-    x = center.x + r * std::cosf(angle);
-    y = center.y + r * std::sinf(angle);
+    x = center.x + r * std::cos(angle);
+    y = center.y + r * std::sin(angle);
     points.emplace_back(x, y);
   }
   return points;

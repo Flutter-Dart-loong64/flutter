@@ -24,7 +24,7 @@ ConicalKind GetConicalKind(Point center,
       center.GetDistance(focus.value()) < kEhCloseEnough) {
     kind = ConicalKind::kRadial;
   }
-  if (focus.has_value() && std::fabsf(radius - focus_radius) < kEhCloseEnough) {
+  if (focus.has_value() && std::fabs(radius - focus_radius) < kEhCloseEnough) {
     if (kind == ConicalKind::kRadial) {
       kind = ConicalKind::kStripAndRadial;
     } else {

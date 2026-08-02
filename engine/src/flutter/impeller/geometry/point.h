@@ -313,8 +313,8 @@ struct TPoint {
   }
 
   constexpr TPoint Rotate(const Radians& angle) const {
-    const auto cos_a = std::cosf(angle.radians);
-    const auto sin_a = std::sinf(angle.radians);
+    const auto cos_a = std::cos(angle.radians);
+    const auto sin_a = std::sin(angle.radians);
     return {x * cos_a - y * sin_a, x * sin_a + y * cos_a};
   }
 

@@ -5,6 +5,7 @@
 #include "impeller/toolkit/glvk/trampoline.h"
 
 #include <array>
+#include <cstring>
 
 #include "flutter/fml/closure.h"
 #include "flutter/fml/trace_event.h"

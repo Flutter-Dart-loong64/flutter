@@ -196,19 +196,19 @@ class StorageCounter : public SegmentReceiver {
 
   void RecordQuad(Point p1, Point cp, Point p2) override {
     size_t count =  //
-        std::ceilf(ComputeQuadradicSubdivisions(scale_, p1, cp, p2));
+        std::ceil(ComputeQuadradicSubdivisions(scale_, p1, cp, p2));
     point_count_ += std::max<size_t>(count, 1);
   }
 
   void RecordConic(Point p1, Point cp, Point p2, Scalar weight) override {
     size_t count =  //
-        std::ceilf(ComputeConicSubdivisions(scale_, p1, cp, p2, weight));
+        std::ceil(ComputeConicSubdivisions(scale_, p1, cp, p2, weight));
     point_count_ += std::max<size_t>(count, 1);
   }
 
   void RecordCubic(Point p1, Point cp1, Point cp2, Point p2) override {
     size_t count =  //
-        std::ceilf(ComputeCubicSubdivisions(scale_, p1, cp1, cp2, p2));
+        std::ceil(ComputeCubicSubdivisions(scale_, p1, cp1, cp2, p2));
     point_count_ += std::max<size_t>(count, 1);
   }
 
@@ -241,7 +241,7 @@ class PathFillWriter : public SegmentReceiver {
 
   void RecordQuad(Point p1, Point cp, Point p2) override {
     Quad quad{p1, cp, p2};
-    Scalar count = std::ceilf(ComputeQuadradicSubdivisions(scale_, p1, cp, p2));
+    Scalar count = std::ceil(ComputeQuadradicSubdivisions(scale_, p1, cp, p2));
     for (size_t i = 1; i < count; i++) {
       writer_.Write(quad.Solve(i / count));
     }
@@ -251,7 +251,7 @@ class PathFillWriter : public SegmentReceiver {
   void RecordConic(Point p1, Point cp, Point p2, Scalar weight) override {
     Conic conic{p1, cp, p2, weight};
     Scalar count =
-        std::ceilf(ComputeConicSubdivisions(scale_, p1, cp, p2, weight));
+        std::ceil(ComputeConicSubdivisions(scale_, p1, cp, p2, weight));
     for (size_t i = 1; i < count; i++) {
       writer_.Write(conic.Solve(i / count));
     }
@@ -261,7 +261,7 @@ class PathFillWriter : public SegmentReceiver {
   void RecordCubic(Point p1, Point cp1, Point cp2, Point p2) override {
     Cubic cubic{p1, cp1, cp2, p2};
     Scalar count =
-        std::ceilf(ComputeCubicSubdivisions(scale_, p1, cp1, cp2, p2));
+        std::ceil(ComputeCubicSubdivisions(scale_, p1, cp1, cp2, p2));
     for (size_t i = 1; i < count; i++) {
       writer_.Write(cubic.Solve(i / count));
     }

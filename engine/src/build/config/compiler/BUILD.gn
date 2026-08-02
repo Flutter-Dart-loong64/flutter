@@ -489,18 +489,23 @@ config("compiler") {
 # C++ modules (available and enabled by default in C++20 and above) are
 # prohibited by the style guide.
 config("cxx_disable_modules") {
-  disable_modules_flags = [
-    "-fno-modules",
+  if (is_linux && current_cpu == "loong64" && !is_clang) {
+    cflags_cc = [ "-fno-modules" ]
+    cflags_objcc = [ "-fno-modules" ]
+  } else {
+    disable_modules_flags = [
+      "-fno-modules",
 
-    # Some Clang versions do not disable ObjC modules (as tested by
-    # __has_feature(objc_modules)) when just -fno-modules is present.
-    "-Xclang",
-    "-fno-cxx-modules",
-  ]
-  cflags_c = disable_modules_flags
-  cflags_cc = disable_modules_flags
-  cflags_objc = disable_modules_flags
-  cflags_objcc = disable_modules_flags
+      # Some Clang versions do not disable ObjC modules (as tested by
+      # __has_feature(objc_modules)) when just -fno-modules is present.
+      "-Xclang",
+      "-fno-cxx-modules",
+    ]
+    cflags_c = disable_modules_flags
+    cflags_cc = disable_modules_flags
+    cflags_objc = disable_modules_flags
+    cflags_objcc = disable_modules_flags
+  }
 }
 
 config("cxx_version_default") {
@@ -674,8 +679,16 @@ config("runtime_library") {
   # gen_snapshot) where this is not supported.
   if (is_linux) {
     if (!use_flutter_cxx) {
-      cflags_cc += [ "-stdlib=libstdc++" ]
-      ldflags += [ "-stdlib=libstdc++" ]
+      if (is_clang || current_cpu != "loong64") {
+        cflags_cc += [ "-stdlib=libstdc++" ]
+        ldflags += [ "-stdlib=libstdc++" ]
+      }
+      if (!is_clang && current_cpu == "loong64") {
+        ldflags += [
+          "-static-libstdc++",
+          "-static-libgcc",
+        ]
+      }
       libs += [ "gcc" ]
     }
   }
@@ -754,6 +767,27 @@ if (is_win) {
 
   if (is_linux && current_cpu == "loong64" && is_clang) {
     default_warning_flags += [ "-Wno-unknown-warning-option" ]
+  }
+  if (is_linux && current_cpu == "loong64" && !is_clang) {
+    default_warning_flags += [
+      "-Wno-error=array-bounds",
+      "-Wno-error=attributes",
+      "-Wno-error=implicit-fallthrough",
+      "-Wno-error=maybe-uninitialized",
+      "-Wno-error=multichar",
+      "-Wno-error=sign-compare",
+      "-Wno-error=stringop-overflow",
+      "-Wno-error=type-limits",
+      "-Wno-error=unknown-pragmas",
+      "-Wno-error=unused-function",
+      "-Wno-error=unused-variable",
+    ]
+    default_warning_flags_cc += [
+      "-Wno-error=deprecated",
+      "-Wno-error=deprecated-copy",
+      "-Wno-error=dangling-reference",
+      "-Wno-error=return-type",
+    ]
   }
 
   if (is_wasm) {

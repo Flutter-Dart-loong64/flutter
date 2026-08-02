@@ -4,6 +4,8 @@
 
 #include "flutter/display_list/dl_storage.h"
 
+#include <cstring>
+
 namespace flutter {
 
 static constexpr inline bool is_power_of_two(int value) {

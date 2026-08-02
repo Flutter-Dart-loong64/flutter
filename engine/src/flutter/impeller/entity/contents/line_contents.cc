@@ -245,9 +245,9 @@ LineContents::CalculatePerVertex(LineVertexShader::PerVertexData* per_vertex,
           geometry->GetP0(), p1_prime, geometry->GetWidth())) {
     return fml::Status(fml::StatusCode::kAborted, "No valid corners");
   }
-  Scalar effective_line_width = std::fabsf((corners[2] - corners[0]).y);
+  Scalar effective_line_width = std::fabs((corners[2] - corners[0]).y);
   ExpandLine(corners, Point(expand_size, expand_size));
-  Scalar padded_line_width = std::fabsf((corners[2] - corners[0]).y);
+  Scalar padded_line_width = std::fabs((corners[2] - corners[0]).y);
   Scalar effective_sample_radius =
       (padded_line_width - effective_line_width) / 2.f;
   LineInfo line_info =

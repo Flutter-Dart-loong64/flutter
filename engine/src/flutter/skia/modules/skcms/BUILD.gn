@@ -83,7 +83,8 @@ arch("skcms_TransformSkx") {
 
 static_library("skcms") {
   cflags = []
-  if (!is_win || is_clang) {
+  if ((!is_win || is_clang) &&
+      !(is_linux && target_cpu == "loong64" && !is_clang)) {
     cflags += [ "-std=c11" ]
   }
   if (target_cpu != "x64" || target_os == "android") {

@@ -19,7 +19,7 @@ Arc::Arc(const Rect& bounds, Degrees start, Degrees sweep, bool include_center)
       // stroke the entire perimeter, but the two segments that connect to
       // the center are at the proper angles.
       // Normalize to less than 720.
-      sweep.degrees = 360.0f + std::fmodf(sweep.degrees, 360.0f);
+      sweep.degrees = 360.0f + std::fmod(sweep.degrees, 360.0f);
     }
   } else {
     // Don't bother sweeping any distance if anything is non-finite.

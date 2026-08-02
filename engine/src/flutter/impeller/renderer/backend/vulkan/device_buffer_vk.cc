@@ -4,6 +4,8 @@
 
 #include "impeller/renderer/backend/vulkan/device_buffer_vk.h"
 
+#include <cstring>
+
 #include "flutter/flutter_vma/flutter_vma.h"
 #include "impeller/renderer/backend/vulkan/context_vk.h"
 

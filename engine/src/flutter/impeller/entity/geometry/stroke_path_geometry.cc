@@ -4,6 +4,8 @@
 
 #include "impeller/entity/geometry/stroke_path_geometry.h"
 
+#include <cstring>
+
 #include "flutter/display_list/geometry/dl_path.h"
 #include "impeller/core/buffer_view.h"
 #include "impeller/core/formats.h"
@@ -232,7 +234,7 @@ class StrokePathSegmentReceiver : public PathAndArcSegmentReceiver {
       // the scale basis by half the stroke width, but make sure the width
       // is at least 1.0 so that we don't reduce the natural transform scale.
       Scalar stroke_scale = scale_ * std::max(1.0f, half_stroke_width_);
-      Scalar count = std::ceilf(curve.SubdivisionCount(stroke_scale));
+      Scalar count = std::ceil(curve.SubdivisionCount(stroke_scale));
 
       Point prev = curve.p1;
       SeparatedVector2 prev_perpendicular = start_perpendicular;

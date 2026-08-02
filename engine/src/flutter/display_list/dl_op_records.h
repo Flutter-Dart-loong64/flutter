@@ -5,6 +5,8 @@
 #ifndef FLUTTER_DISPLAY_LIST_DL_OP_RECORDS_H_
 #define FLUTTER_DISPLAY_LIST_DL_OP_RECORDS_H_
 
+#include <cstring>
+
 #include "flutter/display_list/display_list.h"
 #include "flutter/display_list/dl_blend_mode.h"
 #include "flutter/display_list/dl_op_receiver.h"

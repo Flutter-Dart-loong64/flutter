@@ -5,6 +5,7 @@
 #include "impeller/renderer/backend/vulkan/shader_library_vk.h"
 
 #include <cstdint>
+#include <cstring>
 
 #include "flutter/fml/logging.h"
 #include "flutter/fml/trace_event.h"

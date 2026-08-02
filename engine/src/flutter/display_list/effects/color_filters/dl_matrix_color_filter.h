@@ -5,6 +5,8 @@
 #ifndef FLUTTER_DISPLAY_LIST_EFFECTS_COLOR_FILTERS_DL_MATRIX_COLOR_FILTER_H_
 #define FLUTTER_DISPLAY_LIST_EFFECTS_COLOR_FILTERS_DL_MATRIX_COLOR_FILTER_H_
 
+#include <cstring>
+
 #include "flutter/display_list/effects/dl_color_filter.h"
 
 namespace flutter {

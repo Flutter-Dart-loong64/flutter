@@ -4,6 +4,8 @@
 
 #include "flutter/display_list/effects/dl_color_source.h"
 
+#include <cstring>
+
 #include "flutter/display_list/dl_sampling_options.h"
 #include "flutter/display_list/effects/dl_color_sources.h"
 #include "flutter/display_list/effects/dl_runtime_effect.h"
