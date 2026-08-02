@@ -159,6 +159,9 @@ opts("lasx") {
   enabled = is_loong64
   sources = skia_opts.lasx_sources
   cflags = [ "-mlasx" ]
+  if (!is_clang) {
+    cflags += [ "-flax-vector-conversions" ]
+  }
 }
 
 # Any feature of Skia that requires third-party code should be optional and use
