@@ -31,8 +31,6 @@ const unameCommandForX64 = FakeCommand(command: <String>['uname', '-m'], stdout:
 
 const unameCommandForArm64 = FakeCommand(command: <String>['uname', '-m'], stdout: 'aarch64');
 
-const unameCommandForLoong64 = FakeCommand(command: <String>['uname', '-m'], stdout: 'loongarch64');
-
 void main() {
   const kWhichSysctlCommand = FakeCommand(command: <String>['which', 'sysctl']);
 
@@ -995,13 +993,12 @@ void main() {
         platform: FakePlatform(operatingSystem: 'macos'),
       );
       iosUsbArtifacts.location.createSync();
-      final File ideviceScreenshotFile = iosUsbArtifacts.location.childFile('idevicescreenshot')
+      final File ideviceSyslogFile = iosUsbArtifacts.location.childFile('idevicesyslog')
         ..createSync();
-      iosUsbArtifacts.location.childFile('idevicesyslog').createSync();
 
       expect(iosUsbArtifacts.isUpToDateInner(fileSystem), true);
 
-      ideviceScreenshotFile.deleteSync();
+      ideviceSyslogFile.deleteSync();
 
       expect(iosUsbArtifacts.isUpToDateInner(fileSystem), false);
     },
@@ -1121,9 +1118,9 @@ void main() {
   });
 
   testWithoutContext('FontSubset artifacts on loong64 linux', () {
-    fakeProcessManager.addCommand(unameCommandForLoong64);
-
-    final Cache cache = createCache(FakePlatform());
+    final Cache cache = createCache(
+      FakePlatform(environment: <String, String>{'FLUTTER_HOST_ARCH': 'loong64'}),
+    );
     final artifacts = FontSubsetArtifacts(cache, platform: FakePlatform());
     cache.includeAllPlatforms = false;
 
@@ -1306,9 +1303,9 @@ void main() {
   testWithoutContext(
     'Linux desktop artifacts for loong64 include profile and release artifacts',
     () {
-      fakeProcessManager.addCommand(unameCommandForLoong64);
-
-      final Cache cache = createCache(FakePlatform());
+      final Cache cache = createCache(
+        FakePlatform(environment: <String, String>{'FLUTTER_HOST_ARCH': 'loong64'}),
+      );
       final artifacts = LinuxEngineArtifacts(cache, platform: FakePlatform());
 
       expect(artifacts.getBinaryDirs(), <List<String>>[
@@ -1360,9 +1357,9 @@ void main() {
   testWithoutContext(
     'Android gen_snapshot artifacts on loong64 linux host include linux-loong64 archives',
     () {
-      fakeProcessManager.addCommand(unameCommandForLoong64);
-
-      final Cache cache = createCache(FakePlatform());
+      final Cache cache = createCache(
+        FakePlatform(environment: <String, String>{'FLUTTER_HOST_ARCH': 'loong64'}),
+      );
       final artifacts = AndroidGenSnapshotArtifacts(cache, platform: FakePlatform());
 
       expect(artifacts.getBinaryDirs(), <List<String>>[

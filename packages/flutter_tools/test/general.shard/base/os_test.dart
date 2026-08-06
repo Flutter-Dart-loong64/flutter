@@ -157,10 +157,10 @@ void main() {
       expect(utils.hostPlatform, HostPlatform.linux_riscv64);
     });
 
-    testWithoutContext('Linux Loong64', () async {
+    testWithoutContext('Linux Loong64 host architecture override', () async {
       final OperatingSystemUtils utils = createOSUtils(
-        FakePlatform(),
-        currentAbi: Abi.linuxLoong64,
+        FakePlatform(environment: <String, String>{'FLUTTER_HOST_ARCH': 'loongarch64'}),
+        currentAbi: Abi.linuxX64,
       );
       expect(utils.hostPlatform, HostPlatform.linux_loong64);
     });

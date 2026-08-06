@@ -145,13 +145,29 @@ abstract class OperatingSystemUtils {
 
   /// Represents the platform of the host machine running the Flutter tool.
   HostPlatform get hostPlatform {
+    final String? hostArchOverride = _platform.environment['FLUTTER_HOST_ARCH'];
+    if (_platform.isLinux && hostArchOverride != null) {
+      return switch (hostArchOverride) {
+        'x64' || 'x86_64' => HostPlatform.linux_x64,
+        'arm64' || 'aarch64' => HostPlatform.linux_arm64,
+        'riscv64' => HostPlatform.linux_riscv64,
+        'loong64' || 'loongarch64' => HostPlatform.linux_loong64,
+        _ => throw UnsupportedError('Unsupported Linux host architecture: $hostArchOverride'),
+      };
+    }
+
+    // Keep the tool compilable with an upstream host Dart SDK while accepting
+    // the Loong64 ABI exposed by the Loong64 Dart SDK at runtime.
+    if (_currentAbi.toString() == 'linux_loong64') {
+      return HostPlatform.linux_loong64;
+    }
+
     return switch (_currentAbi) {
       Abi.macosX64 => HostPlatform.darwin_x64,
       Abi.macosArm64 => HostPlatform.darwin_arm64,
       Abi.linuxX64 => HostPlatform.linux_x64,
       Abi.linuxArm64 => HostPlatform.linux_arm64,
       Abi.linuxRiscv64 => HostPlatform.linux_riscv64,
-      Abi.linuxLoong64 => HostPlatform.linux_loong64,
       Abi.windowsX64 => HostPlatform.windows_x64,
       Abi.windowsArm64 => HostPlatform.windows_arm64,
       _ => throw UnsupportedError('Unsupported host platform: $_currentAbi'),

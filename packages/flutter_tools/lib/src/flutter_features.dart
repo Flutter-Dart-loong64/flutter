@@ -78,6 +78,9 @@ mixin FlutterFeatureFlagsIsEnabled implements FeatureFlags {
 
   @override
   bool get isLoong64SupportEnabled => isEnabled(loong64);
+
+  @override
+  bool get isMacOSArm64OnlyEnabled => isEnabled(macOSArm64Only);
 }
 
 interface class FlutterFeatureFlags extends FeatureFlags with FlutterFeatureFlagsIsEnabled {
