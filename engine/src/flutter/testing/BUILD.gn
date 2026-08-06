@@ -224,12 +224,11 @@ if (!is_ios) {
       "test_swiftshader_utils.h",
     ]
 
-    configs += [ "//flutter/third_party/swiftshader:swiftshader_config" ]
-
-    deps = [
-      "//flutter/fml",
-      "//flutter/third_party/swiftshader",
-    ]
+    deps = [ "//flutter/fml" ]
+    if (current_cpu != "loong64") {
+      configs += [ "//flutter/third_party/swiftshader:swiftshader_config" ]
+      deps += [ "//flutter/third_party/swiftshader" ]
+    }
   }
 }
 

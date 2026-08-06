@@ -60,6 +60,11 @@ void FindSwiftShaderICDAtKnownPaths() {
 }  // namespace
 
 void SetupSwiftshaderOnce(bool use_swiftshader) {
+#if defined(FML_ARCH_CPU_LOONG64)
+  // SwiftShader's bundled LLVM and Subzero backends do not support LoongArch.
+  // Loong64 tests use the system EGL software implementation when needed.
+  use_swiftshader = false;
+#endif
   static bool swiftshader_preference = false;
   static std::once_flag sOnceInitializer;
   std::call_once(sOnceInitializer, [use_swiftshader]() {

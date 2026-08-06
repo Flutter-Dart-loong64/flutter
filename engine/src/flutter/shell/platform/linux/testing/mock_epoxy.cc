@@ -52,6 +52,9 @@ typedef struct {
 typedef struct {
 } MockImage;
 
+typedef struct {
+} MockSync;
+
 static MockEpoxy* mock = nullptr;
 static bool display_initialized = false;
 static MockDisplay mock_display;
@@ -59,12 +62,42 @@ static MockConfig mock_config;
 static MockContext mock_context;
 static MockSurface mock_surface;
 static MockImage mock_image;
+static MockSync mock_sync;
 
 static EGLint mock_error = EGL_SUCCESS;
 
 MockEpoxy::MockEpoxy() {
   mock = this;
+  ON_CALL(*this, epoxy_egl_version(::testing::_))
+      .WillByDefault(::testing::Return(15));
+  ON_CALL(*this, eglGetCurrentDisplay)
+      .WillByDefault(
+          ::testing::Return(reinterpret_cast<EGLDisplay>(&mock_display)));
   ON_CALL(*this, eglMakeCurrent).WillByDefault(::testing::Return(EGL_TRUE));
+  ON_CALL(*this, eglCreateImage)
+      .WillByDefault(
+          ::testing::Return(reinterpret_cast<EGLImage>(&mock_image)));
+  ON_CALL(*this, eglCreateImageKHR)
+      .WillByDefault(
+          ::testing::Return(reinterpret_cast<EGLImageKHR>(&mock_image)));
+  ON_CALL(*this, eglDestroyImage).WillByDefault(::testing::Return(EGL_TRUE));
+  ON_CALL(*this, eglDestroyImageKHR).WillByDefault(::testing::Return(EGL_TRUE));
+  ON_CALL(*this, eglCreateSync)
+      .WillByDefault(::testing::Return(reinterpret_cast<EGLSync>(&mock_sync)));
+  ON_CALL(*this, eglCreateSyncKHR)
+      .WillByDefault(
+          ::testing::Return(reinterpret_cast<EGLSyncKHR>(&mock_sync)));
+  ON_CALL(*this, eglClientWaitSync)
+      .WillByDefault(::testing::Return(EGL_CONDITION_SATISFIED));
+  ON_CALL(*this, eglClientWaitSyncKHR)
+      .WillByDefault(::testing::Return(EGL_CONDITION_SATISFIED_KHR));
+  ON_CALL(*this, eglWaitSync).WillByDefault(::testing::Return(EGL_TRUE));
+  ON_CALL(*this, eglWaitSyncKHR).WillByDefault(::testing::Return(EGL_TRUE));
+  ON_CALL(*this, eglDestroySync).WillByDefault(::testing::Return(EGL_TRUE));
+  ON_CALL(*this, eglDestroySyncKHR).WillByDefault(::testing::Return(EGL_TRUE));
+  ON_CALL(*this, glCheckFramebufferStatus)
+      .WillByDefault(::testing::Return(GL_FRAMEBUFFER_COMPLETE));
+  ON_CALL(*this, glGetError).WillByDefault(::testing::Return(GL_NO_ERROR));
   ON_CALL(*this, glGetString(GL_VERSION))
       .WillByDefault(
           ::testing::Return(reinterpret_cast<const GLubyte*>("OpenGL ES 2.0")));
@@ -316,7 +349,7 @@ EGLDisplay _eglGetDisplay(EGLNativeDisplayType display_id) {
 }
 
 EGLDisplay _eglGetCurrentDisplay() {
-  return &mock_display;
+  return mock != nullptr ? mock->eglGetCurrentDisplay() : &mock_display;
 }
 
 EGLDisplay _eglGetPlatformDisplayEXT(EGLenum platform,
@@ -420,6 +453,16 @@ EGLBoolean _eglSwapBuffers(EGLDisplay dpy, EGLSurface surface) {
   return bool_success();
 }
 
+EGLImage _eglCreateImage(EGLDisplay dpy,
+                         EGLContext ctx,
+                         EGLenum target,
+                         EGLClientBuffer buffer,
+                         const EGLAttrib* attrib_list) {
+  return mock != nullptr
+             ? mock->eglCreateImage(dpy, ctx, target, buffer, attrib_list)
+             : reinterpret_cast<EGLImage>(&mock_image);
+}
+
 EGLImageKHR _eglCreateImageKHR(EGLDisplay dpy,
                                EGLContext ctx,
                                EGLenum target,
@@ -435,7 +478,58 @@ EGLBoolean _eglDestroyImageKHR(EGLDisplay dpy, EGLImage image) {
                          : bool_success();
 }
 
+EGLBoolean _eglDestroyImage(EGLDisplay dpy, EGLImage image) {
+  return mock != nullptr ? mock->eglDestroyImage(dpy, image) : bool_success();
+}
+
+EGLSync _eglCreateSync(EGLDisplay dpy,
+                       EGLenum type,
+                       const EGLAttrib* attrib_list) {
+  return mock != nullptr ? mock->eglCreateSync(dpy, type, attrib_list)
+                         : reinterpret_cast<EGLSync>(&mock_sync);
+}
+
+EGLSyncKHR _eglCreateSyncKHR(EGLDisplay dpy,
+                             EGLenum type,
+                             const EGLint* attrib_list) {
+  return mock != nullptr ? mock->eglCreateSyncKHR(dpy, type, attrib_list)
+                         : reinterpret_cast<EGLSyncKHR>(&mock_sync);
+}
+
+EGLint _eglClientWaitSync(EGLDisplay dpy,
+                          EGLSync sync,
+                          EGLint flags,
+                          EGLTime timeout) {
+  return mock != nullptr ? mock->eglClientWaitSync(dpy, sync, flags, timeout)
+                         : EGL_CONDITION_SATISFIED;
+}
+
+EGLint _eglClientWaitSyncKHR(EGLDisplay dpy,
+                             EGLSyncKHR sync,
+                             EGLint flags,
+                             EGLTimeKHR timeout) {
+  return mock != nullptr ? mock->eglClientWaitSyncKHR(dpy, sync, flags, timeout)
+                         : EGL_CONDITION_SATISFIED_KHR;
+}
+
+EGLBoolean _eglWaitSync(EGLDisplay dpy, EGLSync sync, EGLint flags) {
+  return mock != nullptr ? mock->eglWaitSync(dpy, sync, flags) : EGL_TRUE;
+}
+
+EGLint _eglWaitSyncKHR(EGLDisplay dpy, EGLSyncKHR sync, EGLint flags) {
+  return mock != nullptr ? mock->eglWaitSyncKHR(dpy, sync, flags) : EGL_TRUE;
+}
+
+EGLBoolean _eglDestroySync(EGLDisplay dpy, EGLSync sync) {
+  return mock != nullptr ? mock->eglDestroySync(dpy, sync) : bool_success();
+}
+
+EGLBoolean _eglDestroySyncKHR(EGLDisplay dpy, EGLSyncKHR sync) {
+  return mock != nullptr ? mock->eglDestroySyncKHR(dpy, sync) : bool_success();
+}
+
 static GLuint bound_texture_2d;
+static GLuint bound_framebuffer;
 
 static std::map<GLenum, GLuint> framebuffer_renderbuffers;
 
@@ -452,7 +546,11 @@ static void _setEnable(GLenum cap, GLboolean value) {
 
 void _glAttachShader(GLuint program, GLuint shader) {}
 
-static void _glBindFramebuffer(GLenum target, GLuint framebuffer) {}
+static void _glBindFramebuffer(GLenum target, GLuint framebuffer) {
+  if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
+    bound_framebuffer = framebuffer;
+  }
+}
 
 static void _glBindRenderbuffer(GLenum target, GLuint framebuffer) {}
 
@@ -518,7 +616,22 @@ static void _glEnable(GLenum cap) {
   _setEnable(cap, GL_TRUE);
 }
 
-static void _glEGLImageTargetTexture2DOES(GLenum target, GLeglImageOES image) {}
+static void _glEGLImageTargetTexture2DOES(GLenum target, GLeglImageOES image) {
+  if (mock != nullptr) {
+    mock->glEGLImageTargetTexture2DOES(target, image);
+  }
+}
+
+static GLenum _glCheckFramebufferStatus(GLenum target) {
+  return mock != nullptr ? mock->glCheckFramebufferStatus(target)
+                         : GL_FRAMEBUFFER_COMPLETE;
+}
+
+static void _glFinish() {
+  if (mock != nullptr) {
+    mock->glFinish();
+  }
+}
 
 static void _glFramebufferRenderbuffer(GLenum target,
                                        GLenum attachment,
@@ -577,6 +690,9 @@ static void _glGetFramebufferAttachmentParameteriv(GLenum target,
 static void _glGetIntegerv(GLenum pname, GLint* data) {
   if (pname == GL_TEXTURE_BINDING_2D) {
     *data = bound_texture_2d;
+  } else if (pname == GL_FRAMEBUFFER_BINDING ||
+             pname == GL_DRAW_FRAMEBUFFER_BINDING) {
+    *data = bound_framebuffer;
   }
 }
 
@@ -650,7 +766,7 @@ static void _glTexImage2D(GLenum target,
 }
 
 static GLenum _glGetError() {
-  return GL_NO_ERROR;
+  return mock != nullptr ? mock->glGetError() : GL_NO_ERROR;
 }
 
 void _glLinkProgram(GLuint program) {}
@@ -672,6 +788,10 @@ bool epoxy_has_gl_extension(const char* extension) {
 bool epoxy_has_egl_extension(EGLDisplay display, const char* extension) {
   return mock != nullptr ? mock->epoxy_has_egl_extension(display, extension)
                          : false;
+}
+
+int epoxy_egl_version(EGLDisplay display) {
+  return mock != nullptr ? mock->epoxy_egl_version(display) : 15;
 }
 
 bool epoxy_is_desktop_gl(void) {
@@ -738,12 +858,36 @@ EGLBoolean (*epoxy_eglMakeCurrent)(EGLDisplay dpy,
                                    EGLContext ctx);
 EGLBoolean (*epoxy_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
 EGLBoolean (*epoxy_eglTerminate)(EGLDisplay dpy);
+EGLImage (*epoxy_eglCreateImage)(EGLDisplay dpy,
+                                 EGLContext ctx,
+                                 EGLenum target,
+                                 EGLClientBuffer buffer,
+                                 const EGLAttrib* attrib_list);
 EGLImageKHR (*epoxy_eglCreateImageKHR)(EGLDisplay dpy,
                                        EGLContext ctx,
                                        EGLenum target,
                                        EGLClientBuffer buffer,
                                        const EGLint* attrib_list);
+EGLBoolean (*epoxy_eglDestroyImage)(EGLDisplay dpy, EGLImage image);
 EGLBoolean (*epoxy_eglDestroyImageKHR)(EGLDisplay dpy, EGLImage image);
+EGLSync (*epoxy_eglCreateSync)(EGLDisplay dpy,
+                               EGLenum type,
+                               const EGLAttrib* attrib_list);
+EGLSyncKHR (*epoxy_eglCreateSyncKHR)(EGLDisplay dpy,
+                                     EGLenum type,
+                                     const EGLint* attrib_list);
+EGLint (*epoxy_eglClientWaitSync)(EGLDisplay dpy,
+                                  EGLSync sync,
+                                  EGLint flags,
+                                  EGLTime timeout);
+EGLint (*epoxy_eglClientWaitSyncKHR)(EGLDisplay dpy,
+                                     EGLSyncKHR sync,
+                                     EGLint flags,
+                                     EGLTimeKHR timeout);
+EGLBoolean (*epoxy_eglWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags);
+EGLint (*epoxy_eglWaitSyncKHR)(EGLDisplay dpy, EGLSyncKHR sync, EGLint flags);
+EGLBoolean (*epoxy_eglDestroySync)(EGLDisplay dpy, EGLSync sync);
+EGLBoolean (*epoxy_eglDestroySyncKHR)(EGLDisplay dpy, EGLSyncKHR sync);
 
 void (*epoxy_glAttachShader)(GLuint program, GLuint shader);
 void (*epoxy_glBindFramebuffer)(GLenum target, GLuint framebuffer);
@@ -766,6 +910,8 @@ void (*epoxy_glDeleteFramebuffers)(GLsizei n, const GLuint* framebuffers);
 void (*expoxy_glDeleteShader)(GLuint shader);
 void (*epoxy_glDeleteTextures)(GLsizei n, const GLuint* textures);
 void (*epoxy_glEGLImageTargetTexture2DOES)(GLenum target, GLeglImageOES image);
+GLenum (*epoxy_glCheckFramebufferStatus)(GLenum target);
+void (*epoxy_glFinish)();
 void (*epoxy_glFramebufferRenderbuffer)(GLenum target,
                                         GLenum attachment,
                                         GLenum renderbuffertarget,
@@ -824,8 +970,18 @@ static void library_init() {
   epoxy_eglQueryContext = _eglQueryContext;
   epoxy_eglSwapBuffers = _eglSwapBuffers;
   epoxy_eglTerminate = _eglTerminate;
+  epoxy_eglCreateImage = _eglCreateImage;
   epoxy_eglCreateImageKHR = _eglCreateImageKHR;
+  epoxy_eglDestroyImage = _eglDestroyImage;
   epoxy_eglDestroyImageKHR = _eglDestroyImageKHR;
+  epoxy_eglCreateSync = _eglCreateSync;
+  epoxy_eglCreateSyncKHR = _eglCreateSyncKHR;
+  epoxy_eglClientWaitSync = _eglClientWaitSync;
+  epoxy_eglClientWaitSyncKHR = _eglClientWaitSyncKHR;
+  epoxy_eglWaitSync = _eglWaitSync;
+  epoxy_eglWaitSyncKHR = _eglWaitSyncKHR;
+  epoxy_eglDestroySync = _eglDestroySync;
+  epoxy_eglDestroySyncKHR = _eglDestroySyncKHR;
 
   epoxy_glAttachShader = _glAttachShader;
   epoxy_glBindFramebuffer = _glBindFramebuffer;
@@ -841,6 +997,8 @@ static void library_init() {
   epoxy_glDeleteShader = _glDeleteShader;
   epoxy_glDeleteTextures = _glDeleteTextures;
   epoxy_glEGLImageTargetTexture2DOES = _glEGLImageTargetTexture2DOES;
+  epoxy_glCheckFramebufferStatus = _glCheckFramebufferStatus;
+  epoxy_glFinish = _glFinish;
   epoxy_glDisable = _glDisable;
   epoxy_glEnable = _glEnable;
   epoxy_glFramebufferRenderbuffer = _glFramebufferRenderbuffer;

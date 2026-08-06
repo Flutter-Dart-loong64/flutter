@@ -24,9 +24,11 @@ class MockEpoxy {
   MOCK_METHOD(bool,
               epoxy_has_egl_extension,
               (EGLDisplay display, const char* extension));
+  MOCK_METHOD(int, epoxy_egl_version, (EGLDisplay display));
   MOCK_METHOD(bool, epoxy_is_desktop_gl, ());
   MOCK_METHOD(int, epoxy_gl_version, ());
   MOCK_METHOD(EGLProcAddress, eglGetProcAddress, (const char* procname));
+  MOCK_METHOD(EGLDisplay, eglGetCurrentDisplay, ());
   MOCK_METHOD(EGLBoolean,
               eglChooseConfig,
               (EGLDisplay dpy,
@@ -42,13 +44,42 @@ class MockEpoxy {
       eglMakeCurrent,
       (EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx));
   MOCK_METHOD(EGLImage,
+              eglCreateImage,
+              (EGLDisplay dpy,
+               EGLContext ctx,
+               EGLenum target,
+               EGLClientBuffer buffer,
+               const EGLAttrib* attrib_list));
+  MOCK_METHOD(EGLImage,
               eglCreateImageKHR,
               (EGLDisplay dpy,
                EGLContext ctx,
                EGLenum target,
                EGLClientBuffer buffer,
                const EGLint* attrib_list));
+  MOCK_METHOD(EGLBoolean, eglDestroyImage, (EGLDisplay dpy, EGLImage image));
   MOCK_METHOD(EGLBoolean, eglDestroyImageKHR, (EGLDisplay dpy, EGLImage image));
+  MOCK_METHOD(EGLSync,
+              eglCreateSync,
+              (EGLDisplay dpy, EGLenum type, const EGLAttrib* attrib_list));
+  MOCK_METHOD(EGLSyncKHR,
+              eglCreateSyncKHR,
+              (EGLDisplay dpy, EGLenum type, const EGLint* attrib_list));
+  MOCK_METHOD(EGLint,
+              eglClientWaitSync,
+              (EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout));
+  MOCK_METHOD(
+      EGLint,
+      eglClientWaitSyncKHR,
+      (EGLDisplay dpy, EGLSyncKHR sync, EGLint flags, EGLTimeKHR timeout));
+  MOCK_METHOD(EGLBoolean,
+              eglWaitSync,
+              (EGLDisplay dpy, EGLSync sync, EGLint flags));
+  MOCK_METHOD(EGLint,
+              eglWaitSyncKHR,
+              (EGLDisplay dpy, EGLSyncKHR sync, EGLint flags));
+  MOCK_METHOD(EGLBoolean, eglDestroySync, (EGLDisplay dpy, EGLSync sync));
+  MOCK_METHOD(EGLBoolean, eglDestroySyncKHR, (EGLDisplay dpy, EGLSyncKHR sync));
   MOCK_METHOD(void, glClearColor, (GLfloat r, GLfloat g, GLfloat b, GLfloat a));
   MOCK_METHOD(void,
               glBlitFramebuffer,
@@ -72,6 +103,12 @@ class MockEpoxy {
   MOCK_METHOD(void, glGenFramebuffers, (GLsizei n, GLuint* framebuffers));
   MOCK_METHOD(void, glGenRenderbuffers, (GLsizei n, GLuint* renderbuffers));
   MOCK_METHOD(void, glGenTextures, (GLsizei n, GLuint* textures));
+  MOCK_METHOD(GLenum, glCheckFramebufferStatus, (GLenum target));
+  MOCK_METHOD(GLenum, glGetError, ());
+  MOCK_METHOD(void, glFinish, ());
+  MOCK_METHOD(void,
+              glEGLImageTargetTexture2DOES,
+              (GLenum target, GLeglImageOES image));
   MOCK_METHOD(const GLubyte*, glGetString, (GLenum pname));
   MOCK_METHOD(void,
               glUniform2f,

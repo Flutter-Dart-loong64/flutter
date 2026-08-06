@@ -75,6 +75,57 @@ TEST_F(FlCompositorOpenGLTest, Render) {
   cairo_destroy(cr);
 }
 
+TEST_F(FlCompositorOpenGLTest, ReusesEGLImageSiblingAcrossFrames) {
+  g_clear_object(&compositor);
+  compositor = fl_compositor_opengl_new(opengl_manager, TRUE);
+
+  constexpr size_t width = 100;
+  constexpr size_t height = 100;
+  g_autoptr(FlFramebuffer) framebuffer =
+      fl_framebuffer_new(GL_RGB, width, height, FALSE);
+  FlutterBackingStore backing_store = {
+      .type = kFlutterBackingStoreTypeOpenGL,
+      .open_gl = {.framebuffer = {.user_data = framebuffer}}};
+  FlutterLayer layer = {.type = kFlutterLayerContentTypeBackingStore,
+                        .backing_store = &backing_store,
+                        .offset = {0, 0},
+                        .size = {width, height}};
+  const FlutterLayer* layers[1] = {&layer};
+
+  EXPECT_CALL(epoxy, glEGLImageTargetTexture2DOES).Times(1);
+  ASSERT_TRUE(fl_compositor_opengl_composite_layers(compositor, layers, 1));
+  EXPECT_TRUE(fl_compositor_opengl_render(compositor, nullptr, nullptr));
+  EXPECT_TRUE(fl_compositor_opengl_render(compositor, nullptr, nullptr));
+}
+
+TEST_F(FlCompositorOpenGLTest, FallsBackAfterEGLImageImportFailure) {
+  g_clear_object(&compositor);
+  compositor = fl_compositor_opengl_new(opengl_manager, TRUE);
+
+  constexpr size_t width = 100;
+  constexpr size_t height = 100;
+  g_autoptr(FlFramebuffer) framebuffer =
+      fl_framebuffer_new(GL_RGB, width, height, FALSE);
+  FlutterBackingStore backing_store = {
+      .type = kFlutterBackingStoreTypeOpenGL,
+      .open_gl = {.framebuffer = {.user_data = framebuffer}}};
+  FlutterLayer layer = {.type = kFlutterLayerContentTypeBackingStore,
+                        .backing_store = &backing_store,
+                        .offset = {0, 0},
+                        .size = {width, height}};
+  const FlutterLayer* layers[1] = {&layer};
+
+  ASSERT_TRUE(fl_compositor_opengl_composite_layers(compositor, layers, 1));
+  EXPECT_CALL(epoxy, glEGLImageTargetTexture2DOES).Times(1);
+  EXPECT_CALL(epoxy, glGetError)
+      .WillOnce(::testing::Return(GL_NO_ERROR))
+      .WillOnce(::testing::Return(GL_INVALID_OPERATION));
+  EXPECT_FALSE(fl_compositor_opengl_render(compositor, nullptr, nullptr));
+
+  ASSERT_TRUE(fl_compositor_opengl_composite_layers(compositor, layers, 1));
+  EXPECT_TRUE(fl_compositor_opengl_render(compositor, nullptr, nullptr));
+}
+
 TEST_F(FlCompositorOpenGLTest, Resize) {
   // Present a layer that is the old size.
   constexpr size_t width1 = 90;

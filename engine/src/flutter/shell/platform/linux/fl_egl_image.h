@@ -24,6 +24,16 @@ G_DECLARE_FINAL_TYPE(FlEGLImage, fl_egl_image, FL, EGL_IMAGE, GObject)
 FlEGLImage* fl_egl_image_new(GLuint texture);
 
 /**
+ * fl_egl_image_get_display:
+ * @image: an #FlEGLImage.
+ *
+ * Gets the EGL display that owns this image.
+ *
+ * Returns: the owning EGL display.
+ */
+EGLDisplay fl_egl_image_get_display(FlEGLImage* image);
+
+/**
  * fl_egl_image_get_image:
  * @image: an #FlEGLImage.
  *

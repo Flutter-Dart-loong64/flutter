@@ -29,6 +29,9 @@ struct _FlCompositorOpenGL {
   // Last rendered frame.
   FlFramebuffer* framebuffer;
 
+  // Cached EGLImage sibling created in the GTK consumer context.
+  FlFramebuffer* consumer_framebuffer;
+
   // Last rendered frame pixels (only set if shareable is FALSE).
   uint8_t* pixels;
 
@@ -43,8 +46,9 @@ static void fl_compositor_opengl_dispose(GObject* object) {
 
   g_clear_object(&self->shader);
 
-  g_clear_object(&self->opengl_manager);
+  g_clear_object(&self->consumer_framebuffer);
   g_clear_object(&self->framebuffer);
+  g_clear_object(&self->opengl_manager);
   g_clear_pointer(&self->pixels, g_free);
 
   G_OBJECT_CLASS(fl_compositor_opengl_parent_class)->dispose(object);
@@ -133,7 +137,8 @@ gboolean fl_compositor_opengl_composite_layers(FlCompositorOpenGL* self,
   size_t height = layers[0]->size.height;
   if (self->framebuffer == nullptr ||
       fl_framebuffer_get_width(self->framebuffer) != width ||
-      fl_framebuffer_get_height(self->framebuffer) != height) {
+      fl_framebuffer_get_height(self->framebuffer) != height ||
+      fl_framebuffer_get_shareable(self->framebuffer) != self->shareable) {
     g_clear_object(&self->framebuffer);
     self->framebuffer =
         fl_framebuffer_new(general_format, width, height, self->shareable);
@@ -206,7 +211,7 @@ gboolean fl_compositor_opengl_composite_layers(FlCompositorOpenGL* self,
     }
   }
   glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-  glFlush();
+  fl_framebuffer_signal_ready(self->framebuffer);
 
   glDeleteVertexArrays(1, &vao);
 
@@ -269,11 +274,29 @@ gboolean fl_compositor_opengl_render(FlCompositorOpenGL* self,
   size_t height = gdk_window_get_height(window) * scale_factor;
 
   if (fl_framebuffer_get_shareable(self->framebuffer)) {
-    g_autoptr(FlFramebuffer) sibling =
-        fl_framebuffer_create_sibling(self->framebuffer);
-    gdk_cairo_draw_from_gl(cr, window, fl_framebuffer_get_texture_id(sibling),
-                           GL_TEXTURE, scale_factor, 0, 0, width, height);
+    if (self->consumer_framebuffer == nullptr ||
+        !fl_framebuffer_shares_storage(self->framebuffer,
+                                       self->consumer_framebuffer)) {
+      g_clear_object(&self->consumer_framebuffer);
+      self->consumer_framebuffer =
+          fl_framebuffer_create_sibling(self->framebuffer);
+    }
+
+    if (self->consumer_framebuffer == nullptr ||
+        !fl_framebuffer_wait_ready(self->framebuffer)) {
+      // The driver advertised EGLImage support but rejected the real import or
+      // synchronization operation. Recreate the producer target on the next
+      // frame and continue through the CPU transfer path.
+      self->shareable = FALSE;
+      g_clear_object(&self->consumer_framebuffer);
+      return FALSE;
+    }
+
+    gdk_cairo_draw_from_gl(
+        cr, window, fl_framebuffer_get_texture_id(self->consumer_framebuffer),
+        GL_TEXTURE, scale_factor, 0, 0, width, height);
   } else {
+    g_clear_object(&self->consumer_framebuffer);
     GLint saved_texture_binding;
     glGetIntegerv(GL_TEXTURE_BINDING_2D, &saved_texture_binding);
 
@@ -302,4 +325,9 @@ gboolean fl_compositor_opengl_render(FlCompositorOpenGL* self,
   glFlush();
 
   return TRUE;
+}
+
+void fl_compositor_opengl_clear_render_cache(FlCompositorOpenGL* self) {
+  g_return_if_fail(FL_IS_COMPOSITOR_OPENGL(self));
+  g_clear_object(&self->consumer_framebuffer);
 }

@@ -145,6 +145,69 @@ static void wait_for_frame(FlViewRendererOpenGL* self,
   }
 }
 
+static gboolean validate_egl_image_sharing(FlViewRendererOpenGL* self) {
+  FlOpenGLManager* manager = fl_engine_get_opengl_manager(self->engine);
+  if (!fl_opengl_manager_make_platform_current(manager)) {
+    return FALSE;
+  }
+
+  FlFramebuffer* producer = fl_framebuffer_new(GL_RGBA, 1, 1, TRUE);
+  gboolean producer_shareable = fl_framebuffer_get_shareable(producer);
+  if (producer_shareable) {
+    GLint saved_framebuffer_binding = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &saved_framebuffer_binding);
+    glBindFramebuffer(GL_FRAMEBUFFER, fl_framebuffer_get_id(producer));
+    while (glGetError() != GL_NO_ERROR) {
+    }
+    glClearColor(1.0, 0.0, 1.0, 1.0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    producer_shareable = glGetError() == GL_NO_ERROR;
+    glBindFramebuffer(GL_FRAMEBUFFER, saved_framebuffer_binding);
+  }
+  if (producer_shareable) {
+    fl_framebuffer_signal_ready(producer);
+  }
+  fl_opengl_manager_clear_current(manager);
+
+  FlFramebuffer* consumer = nullptr;
+  gboolean valid = FALSE;
+  if (producer_shareable) {
+    gdk_gl_context_make_current(self->render_context);
+    consumer = fl_framebuffer_create_sibling(producer);
+    valid = consumer != nullptr && fl_framebuffer_wait_ready(producer);
+    if (valid) {
+      GLint saved_framebuffer_binding = 0;
+      GLubyte pixel[4] = {};
+      glGetIntegerv(GL_FRAMEBUFFER_BINDING, &saved_framebuffer_binding);
+      glBindFramebuffer(GL_FRAMEBUFFER, fl_framebuffer_get_id(consumer));
+      while (glGetError() != GL_NO_ERROR) {
+      }
+      glReadPixels(0, 0, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, pixel);
+      valid = glGetError() == GL_NO_ERROR && pixel[0] == 0xff &&
+              pixel[1] == 0x00 && pixel[2] == 0xff && pixel[3] == 0xff;
+      glBindFramebuffer(GL_FRAMEBUFFER, saved_framebuffer_binding);
+      if (!valid) {
+        g_warning("EGL image sharing probe did not preserve pixel contents");
+      }
+    }
+    g_clear_object(&consumer);
+    gdk_gl_context_clear_current();
+  }
+
+  // Producer resources must be destroyed in the EGL share group that created
+  // them, not in GDK's consumer context.
+  if (fl_opengl_manager_make_platform_current(manager)) {
+    g_object_unref(producer);
+    fl_opengl_manager_clear_current(manager);
+  } else {
+    g_warning("Failed to restore EGL context after image sharing probe");
+    g_object_unref(producer);
+    valid = FALSE;
+  }
+
+  return valid;
+}
+
 // Implements GtkWidget::realize.
 static void fl_view_renderer_opengl_realize(GtkWidget* widget) {
   FlViewRendererOpenGL* self = FL_VIEW_RENDERER_OPENGL(widget);
@@ -184,6 +247,15 @@ static void fl_view_renderer_opengl_realize(GtkWidget* widget) {
     shareable = epoxy_has_gl_extension("GL_OES_EGL_image") &&
                 epoxy_glEGLImageTargetTexture2DOES != nullptr;
     gdk_gl_context_clear_current();
+    if (shareable) {
+      shareable = validate_egl_image_sharing(self);
+    }
+  }
+  if (GDK_IS_WAYLAND_DISPLAY(gtk_widget_get_display(widget))) {
+    g_debug("EGL image sharing is %s for the GDK Wayland backend",
+            shareable ? "enabled" : "disabled");
+  } else {
+    g_debug("EGL image sharing is disabled for the GDK X11 backend");
   }
   self->task_runner =
       FL_TASK_RUNNER(g_object_ref(fl_engine_get_task_runner(self->engine)));
@@ -226,6 +298,21 @@ static gboolean fl_view_renderer_opengl_draw(GtkWidget* widget, cairo_t* cr) {
   g_mutex_unlock(&self->frame_mutex);
 
   return result;
+}
+
+// Implements GtkWidget::unrealize.
+static void fl_view_renderer_opengl_unrealize(GtkWidget* widget) {
+  FlViewRendererOpenGL* self = FL_VIEW_RENDERER_OPENGL(widget);
+
+  g_mutex_lock(&self->frame_mutex);
+  if (self->render_context != nullptr && self->compositor != nullptr) {
+    gdk_gl_context_make_current(self->render_context);
+    fl_compositor_opengl_clear_render_cache(self->compositor);
+    gdk_gl_context_clear_current();
+  }
+  g_mutex_unlock(&self->frame_mutex);
+
+  GTK_WIDGET_CLASS(fl_view_renderer_opengl_parent_class)->unrealize(widget);
 }
 
 // Implements FlViewRenderer::present_layers.
@@ -283,6 +370,7 @@ static void fl_view_renderer_opengl_class_init(
 
   GtkWidgetClass* widget_class = GTK_WIDGET_CLASS(klass);
   widget_class->realize = fl_view_renderer_opengl_realize;
+  widget_class->unrealize = fl_view_renderer_opengl_unrealize;
   widget_class->draw = fl_view_renderer_opengl_draw;
 
   FlViewRendererClass* renderer_class = FL_VIEW_RENDERER_CLASS(klass);

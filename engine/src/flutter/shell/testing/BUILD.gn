@@ -19,7 +19,7 @@ group("testing") {
 shell_gpu_configuration("tester_gpu_configuration") {
   enable_software = true
   enable_gl = false
-  enable_vulkan = true
+  enable_vulkan = impeller_enable_vulkan
   enable_metal = shell_enable_metal
 }
 
@@ -96,14 +96,15 @@ tester("flutter_tester") {
 
   if (impeller_supports_rendering) {
     configs = [ ":tester_gpu_configuration_config" ]
-    sources = [ "tester_context_vk_factory.cc" ]
+    sources = []
+    deps = [ ":tester_gpu_configuration" ]
+    if (impeller_enable_vulkan) {
+      sources += [ "tester_context_vk_factory.cc" ]
+      deps += [ "//flutter/third_party/swiftshader/src/Vulkan:swiftshader_libvulkan_static" ]
+    }
     if (shell_enable_metal) {
       sources += [ "tester_context_mtl_factory.mm" ]
     }
-    deps = [
-      ":tester_gpu_configuration",
-      "//flutter/third_party/swiftshader/src/Vulkan:swiftshader_libvulkan_static",
-    ]
   }
 
   metadata = {

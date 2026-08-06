@@ -28,11 +28,11 @@ G_DECLARE_FINAL_TYPE(FlCompositorOpenGL,
  *
  * A frame may be written by fl_compositor_opengl_composite_layers using one
  * OpenGL context and read by fl_compositor_opengl_render using another. When
- * the compositor is created as shareable the two contexts must belong to the
- * same share group so the frame texture can be accessed from both, and the
- * writing context issues a glFlush() so the frame is visible to the reading
- * context. When not shareable the frame is copied to CPU memory by the writing
- * context and uploaded into a new texture by the reading context.
+ * the compositor is created as shareable the contexts must use compatible EGL
+ * displays and support EGLImage. An EGL fence synchronizes the producer and
+ * consumer contexts, with glFinish() as the compatibility fallback. When not
+ * shareable the frame is copied to CPU memory by the writing context and
+ * uploaded into a texture by the reading context.
  */
 
 /**
@@ -87,6 +87,15 @@ void fl_compositor_opengl_get_frame_size(FlCompositorOpenGL* compositor,
 gboolean fl_compositor_opengl_render(FlCompositorOpenGL* compositor,
                                      cairo_t* cr,
                                      GdkWindow* window);
+
+/**
+ * fl_compositor_opengl_clear_render_cache:
+ * @compositor: an #FlCompositorOpenGL.
+ *
+ * Releases resources created in the consumer OpenGL context. The consumer
+ * context must be current.
+ */
+void fl_compositor_opengl_clear_render_cache(FlCompositorOpenGL* compositor);
 
 G_END_DECLS
 

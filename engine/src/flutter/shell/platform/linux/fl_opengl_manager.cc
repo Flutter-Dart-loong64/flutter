@@ -374,11 +374,15 @@ static void fl_opengl_manager_init(FlOpenGLManager* self) {
 
   if (make_current_unchecked(self, self->platform_context,
                              self->platform_surface)) {
-    gboolean has_egl_image =
-        (major > 1 || (major == 1 && minor >= 5) ||
-         epoxy_has_egl_extension(self->display, "EGL_KHR_image_base")) &&
+    gboolean has_core_egl_image = epoxy_egl_version(self->display) >= 15 &&
+                                  epoxy_eglCreateImage != nullptr &&
+                                  epoxy_eglDestroyImage != nullptr;
+    gboolean has_khr_egl_image =
+        epoxy_has_egl_extension(self->display, "EGL_KHR_image_base") &&
+        epoxy_has_egl_extension(self->display, "EGL_KHR_gl_texture_2D_image") &&
         epoxy_eglCreateImageKHR != nullptr &&
         epoxy_eglDestroyImageKHR != nullptr;
+    gboolean has_egl_image = has_core_egl_image || has_khr_egl_image;
     self->supports_egl_image = has_egl_image &&
                                epoxy_has_gl_extension("GL_OES_EGL_image") &&
                                epoxy_glEGLImageTargetTexture2DOES != nullptr;

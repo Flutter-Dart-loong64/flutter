@@ -60,6 +60,37 @@ gboolean fl_framebuffer_get_shareable(FlFramebuffer* framebuffer);
 FlFramebuffer* fl_framebuffer_create_sibling(FlFramebuffer* framebuffer);
 
 /**
+ * fl_framebuffer_shares_storage:
+ * @framebuffer: an #FlFramebuffer.
+ * @other: another #FlFramebuffer.
+ *
+ * Checks whether two framebuffers refer to the same EGL image storage.
+ *
+ * Returns: %TRUE if both framebuffers share storage.
+ */
+gboolean fl_framebuffer_shares_storage(FlFramebuffer* framebuffer,
+                                       FlFramebuffer* other);
+
+/**
+ * fl_framebuffer_signal_ready:
+ * @framebuffer: an #FlFramebuffer.
+ *
+ * Publishes rendering commands for a shareable framebuffer. An EGL fence is
+ * used when available; otherwise this waits for completion with glFinish().
+ */
+void fl_framebuffer_signal_ready(FlFramebuffer* framebuffer);
+
+/**
+ * fl_framebuffer_wait_ready:
+ * @framebuffer: an #FlFramebuffer.
+ *
+ * Waits for rendering commands published by fl_framebuffer_signal_ready().
+ *
+ * Returns: %TRUE if the framebuffer is ready to consume.
+ */
+gboolean fl_framebuffer_wait_ready(FlFramebuffer* framebuffer);
+
+/**
  * fl_framebuffer_get_id:
  * @framebuffer: an #FlFramebuffer.
  *

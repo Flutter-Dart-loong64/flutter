@@ -141,4 +141,35 @@ TEST_F(FlOpenGLManagerTest, RejectsEGLImageWithoutGLExtension) {
   EXPECT_FALSE(fl_opengl_manager_supports_egl_image(manager));
 }
 
+TEST_F(FlOpenGLManagerTest, RequiresCompleteKHREGLImageSupportBeforeEGL15) {
+  ON_CALL(epoxy, epoxy_egl_version(::testing::_))
+      .WillByDefault(::testing::Return(14));
+  ON_CALL(epoxy, epoxy_has_egl_extension(::testing::_, ::testing::_))
+      .WillByDefault([](EGLDisplay display, const char* extension) {
+        return g_str_equal(extension, "EGL_KHR_image_base");
+      });
+  ON_CALL(epoxy, epoxy_has_gl_extension(::testing::StrEq("GL_OES_EGL_image")))
+      .WillByDefault(::testing::Return(true));
+
+  g_autoptr(FlOpenGLManager) manager = fl_opengl_manager_new();
+  ASSERT_TRUE(fl_opengl_manager_is_valid(manager));
+  EXPECT_FALSE(fl_opengl_manager_supports_egl_image(manager));
+}
+
+TEST_F(FlOpenGLManagerTest, DetectsCompleteKHREGLImageSupportBeforeEGL15) {
+  ON_CALL(epoxy, epoxy_egl_version(::testing::_))
+      .WillByDefault(::testing::Return(14));
+  ON_CALL(epoxy, epoxy_has_egl_extension(::testing::_, ::testing::_))
+      .WillByDefault([](EGLDisplay display, const char* extension) {
+        return g_str_equal(extension, "EGL_KHR_image_base") ||
+               g_str_equal(extension, "EGL_KHR_gl_texture_2D_image");
+      });
+  ON_CALL(epoxy, epoxy_has_gl_extension(::testing::StrEq("GL_OES_EGL_image")))
+      .WillByDefault(::testing::Return(true));
+
+  g_autoptr(FlOpenGLManager) manager = fl_opengl_manager_new();
+  ASSERT_TRUE(fl_opengl_manager_is_valid(manager));
+  EXPECT_TRUE(fl_opengl_manager_supports_egl_image(manager));
+}
+
 }  // namespace
