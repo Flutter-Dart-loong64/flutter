@@ -10,12 +10,13 @@
 struct _FlEGLImage {
   GObject parent_instance;
 
+  EGLDisplay display;
+
   EGLImage image;
 };
 
-static EGLImage create_egl_image(GLuint texture_id) {
-  EGLDisplay egl_display = eglGetCurrentDisplay();
-  if (egl_display == EGL_NO_DISPLAY) {
+static EGLImage create_egl_image(EGLDisplay display, GLuint texture_id) {
+  if (display == EGL_NO_DISPLAY) {
     g_warning("Failed to create EGL image: Failed to get current EGL display");
     return EGL_NO_IMAGE_KHR;
   }
@@ -26,10 +27,14 @@ static EGLImage create_egl_image(GLuint texture_id) {
     return EGL_NO_IMAGE_KHR;
   }
 
-  return eglCreateImageKHR(
-      egl_display, egl_context, EGL_GL_TEXTURE_2D,
+  EGLImage image = eglCreateImageKHR(
+      display, egl_context, EGL_GL_TEXTURE_2D,
       reinterpret_cast<EGLClientBuffer>(static_cast<intptr_t>(texture_id)),
       nullptr);
+  if (image == EGL_NO_IMAGE_KHR) {
+    g_warning("Failed to create EGL image: EGL error 0x%04x", eglGetError());
+  }
+  return image;
 }
 
 G_DEFINE_TYPE(FlEGLImage, fl_egl_image, G_TYPE_OBJECT)
@@ -37,15 +42,13 @@ G_DEFINE_TYPE(FlEGLImage, fl_egl_image, G_TYPE_OBJECT)
 static void fl_egl_image_dispose(GObject* object) {
   FlEGLImage* self = FL_EGL_IMAGE(object);
 
-  if (self->image != EGL_NO_IMAGE_KHR) {
-    EGLDisplay egl_display = eglGetCurrentDisplay();
-    if (egl_display == EGL_NO_DISPLAY) {
-      g_warning(
-          "Failed to destroy EGL image: Failed to get current EGL display");
-    } else {
-      eglDestroyImageKHR(egl_display, self->image);
+  if (self->display != EGL_NO_DISPLAY && self->image != EGL_NO_IMAGE_KHR) {
+    if (eglDestroyImageKHR(self->display, self->image) != EGL_TRUE) {
+      g_warning("Failed to destroy EGL image: EGL error 0x%04x", eglGetError());
     }
   }
+  self->display = EGL_NO_DISPLAY;
+  self->image = EGL_NO_IMAGE_KHR;
 
   G_OBJECT_CLASS(fl_egl_image_parent_class)->dispose(object);
 }
@@ -60,7 +63,12 @@ FlEGLImage* fl_egl_image_new(GLuint texture) {
   FlEGLImage* self =
       FL_EGL_IMAGE(g_object_new(fl_egl_image_get_type(), nullptr));
 
-  self->image = create_egl_image(texture);
+  self->display = eglGetCurrentDisplay();
+  self->image = create_egl_image(self->display, texture);
+  if (self->image == EGL_NO_IMAGE_KHR) {
+    g_object_unref(self);
+    return nullptr;
+  }
 
   return self;
 }

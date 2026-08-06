@@ -6,6 +6,8 @@
 
 #include <gmodule.h>
 
+#include "flutter/shell/platform/linux/fl_dart_project_private.h"
+
 struct _FlDartProject {
   GObject parent_instance;
 
@@ -16,6 +18,7 @@ struct _FlDartProject {
 
   FlUIThreadPolicy ui_thread_policy;
   gboolean enable_impeller;
+  gboolean has_impeller_override;
 };
 
 G_DEFINE_TYPE(FlDartProject, fl_dart_project, G_TYPE_OBJECT)
@@ -138,10 +141,16 @@ void fl_dart_project_set_enable_impeller(FlDartProject* project,
                                          gboolean enable_impeller) {
   g_return_if_fail(FL_IS_DART_PROJECT(project));
   project->enable_impeller = enable_impeller;
+  project->has_impeller_override = TRUE;
 }
 
 G_MODULE_EXPORT
 gboolean fl_dart_project_get_enable_impeller(FlDartProject* project) {
   g_return_val_if_fail(FL_IS_DART_PROJECT(project), FALSE);
   return project->enable_impeller;
+}
+
+gboolean fl_dart_project_has_impeller_override(FlDartProject* project) {
+  g_return_val_if_fail(FL_IS_DART_PROJECT(project), FALSE);
+  return project->has_impeller_override;
 }

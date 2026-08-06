@@ -12,10 +12,21 @@ TEST(FlEGLImageTest, Test) {
 
   EXPECT_CALL(epoxy, eglCreateImageKHR(testing::_, testing::_, testing::_,
                                        testing::_, testing::_))
-      .Times(1);
+      .WillOnce(testing::Return(reinterpret_cast<EGLImage>(1)));
   EXPECT_CALL(epoxy, eglDestroyImageKHR(testing::_, testing::_)).Times(1);
 
   GLuint texture_id = 99;
   g_autoptr(FlEGLImage) image = fl_egl_image_new(texture_id);
   EXPECT_NE(fl_egl_image_get_image(image), EGL_NO_IMAGE_KHR);
+}
+
+TEST(FlEGLImageTest, CreationFailure) {
+  ::testing::NiceMock<flutter::testing::MockEpoxy> epoxy;
+
+  EXPECT_CALL(epoxy, eglCreateImageKHR(testing::_, testing::_, testing::_,
+                                       testing::_, testing::_))
+      .WillOnce(testing::Return(EGL_NO_IMAGE_KHR));
+  EXPECT_CALL(epoxy, eglDestroyImageKHR(testing::_, testing::_)).Times(0);
+
+  EXPECT_EQ(fl_egl_image_new(99), nullptr);
 }

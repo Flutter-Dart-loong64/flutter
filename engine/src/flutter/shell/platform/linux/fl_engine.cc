@@ -14,10 +14,12 @@
 #include "flutter/shell/platform/embedder/embedder.h"
 #include "flutter/shell/platform/linux/fl_accessibility_handler.h"
 #include "flutter/shell/platform/linux/fl_binary_messenger_private.h"
+#include "flutter/shell/platform/linux/fl_dart_project_private.h"
 #include "flutter/shell/platform/linux/fl_display_monitor.h"
 #include "flutter/shell/platform/linux/fl_engine_private.h"
 #include "flutter/shell/platform/linux/fl_framebuffer.h"
 #include "flutter/shell/platform/linux/fl_keyboard_handler.h"
+#include "flutter/shell/platform/linux/fl_opengl_driver.h"
 #include "flutter/shell/platform/linux/fl_opengl_manager.h"
 #include "flutter/shell/platform/linux/fl_pixel_buffer_texture_private.h"
 #include "flutter/shell/platform/linux/fl_platform_handler.h"
@@ -704,7 +706,12 @@ static FlEngine* fl_engine_new_full(FlDartProject* project,
     if (renderer != nullptr && strcmp(renderer, "opengl") != 0) {
       g_warning("Unknown renderer type '%s', defaulting to opengl", renderer);
     }
-    self->renderer_type = kOpenGL;
+    if (fl_opengl_manager_is_valid(self->opengl_manager)) {
+      self->renderer_type = kOpenGL;
+    } else {
+      self->renderer_type = kSoftware;
+      g_warning("OpenGL ES initialization failed; using the software renderer");
+    }
   }
 
   if (binary_messenger != nullptr) {
@@ -813,15 +820,36 @@ gboolean fl_engine_start(FlEngine* self, GError** error) {
   }
 
   gboolean enable_impeller = fl_dart_project_get_enable_impeller(self->project);
-  gboolean has_enable_impeller = FALSE;
+  gboolean has_impeller_override =
+      fl_dart_project_has_impeller_override(self->project);
+  gboolean has_environment_impeller_switch = FALSE;
   for (const auto& env_switch : flutter::GetSwitchesFromEnvironment()) {
     if (env_switch == "--enable-impeller" ||
         env_switch == "--enable-impeller=true") {
       enable_impeller = TRUE;
-      has_enable_impeller = TRUE;
+      has_impeller_override = TRUE;
+      has_environment_impeller_switch = TRUE;
     } else if (env_switch == "--enable-impeller=false") {
       enable_impeller = FALSE;
-      has_enable_impeller = TRUE;
+      has_impeller_override = TRUE;
+      has_environment_impeller_switch = TRUE;
+    }
+  }
+
+  if (enable_impeller && !has_impeller_override) {
+    gboolean supports_impeller = FALSE;
+    if (self->renderer_type == kOpenGL &&
+        fl_opengl_manager_make_platform_current(self->opengl_manager)) {
+      FlOpenGLDriverCapabilities capabilities =
+          fl_opengl_driver_get_capabilities();
+      supports_impeller = capabilities.supports_impeller;
+      fl_opengl_manager_clear_current(self->opengl_manager);
+    }
+    if (!supports_impeller) {
+      enable_impeller = FALSE;
+      g_message(
+          "Impeller is disabled because the active renderer is not supported; "
+          "using Skia instead");
     }
   }
 
@@ -834,7 +862,7 @@ gboolean fl_engine_start(FlEngine* self, GError** error) {
   // Linux (and other desktop platforms) always uses SDFs.
   g_ptr_array_add(command_line_args, g_strdup("--impeller-use-sdfs"));
 
-  if (enable_impeller && !has_enable_impeller) {
+  if (enable_impeller && !has_environment_impeller_switch) {
     g_ptr_array_add(command_line_args, g_strdup("--enable-impeller"));
   }
 

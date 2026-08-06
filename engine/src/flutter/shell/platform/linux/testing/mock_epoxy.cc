@@ -64,6 +64,25 @@ static EGLint mock_error = EGL_SUCCESS;
 
 MockEpoxy::MockEpoxy() {
   mock = this;
+  ON_CALL(*this, eglMakeCurrent).WillByDefault(::testing::Return(EGL_TRUE));
+  ON_CALL(*this, glGetString(GL_VERSION))
+      .WillByDefault(
+          ::testing::Return(reinterpret_cast<const GLubyte*>("OpenGL ES 2.0")));
+  ON_CALL(*this, eglChooseConfig)
+      .WillByDefault([](EGLDisplay dpy, const EGLint* attrib_list,
+                        EGLConfig* configs, EGLint config_size,
+                        EGLint* num_config) {
+        EGLint n_returned = 0;
+        if (configs != nullptr && config_size >= 1) {
+          configs[0] = &mock_config;
+          n_returned = 1;
+        }
+        if (num_config != nullptr) {
+          *num_config = configs == nullptr ? 1 : n_returned;
+        }
+        mock_error = EGL_SUCCESS;
+        return EGL_TRUE;
+      });
 }
 
 MockEpoxy::~MockEpoxy() {
@@ -122,6 +141,11 @@ EGLBoolean _eglChooseConfig(EGLDisplay dpy,
     return EGL_FALSE;
   }
 
+  if (mock != nullptr) {
+    return mock->eglChooseConfig(dpy, attrib_list, configs, config_size,
+                                 num_config);
+  }
+
   if (configs == nullptr) {
     if (num_config != nullptr) {
       *num_config = 1;
@@ -166,7 +190,17 @@ EGLSurface _eglCreatePbufferSurface(EGLDisplay dpy,
   }
 
   mock_error = EGL_SUCCESS;
-  return &mock_surface;
+  return mock != nullptr
+             ? mock->eglCreatePbufferSurface(dpy, config, attrib_list)
+             : &mock_surface;
+}
+
+EGLBoolean _eglDestroyContext(EGLDisplay dpy, EGLContext context) {
+  return check_display(dpy) ? bool_success() : EGL_FALSE;
+}
+
+EGLBoolean _eglDestroySurface(EGLDisplay dpy, EGLSurface surface) {
+  return check_display(dpy) ? bool_success() : EGL_FALSE;
 }
 
 EGLSurface _eglCreateWindowSurface(EGLDisplay dpy,
@@ -356,6 +390,15 @@ EGLBoolean _eglMakeCurrent(EGLDisplay dpy,
     return EGL_FALSE;
   }
 
+  return mock != nullptr ? mock->eglMakeCurrent(dpy, draw, read, ctx)
+                         : bool_success();
+}
+
+EGLBoolean _eglTerminate(EGLDisplay dpy) {
+  if (!check_display(dpy)) {
+    return EGL_FALSE;
+  }
+  display_initialized = false;
   return bool_success();
 }
 EGLBoolean _eglQueryContext(EGLDisplay display,
@@ -382,12 +425,14 @@ EGLImageKHR _eglCreateImageKHR(EGLDisplay dpy,
                                EGLenum target,
                                EGLClientBuffer buffer,
                                const EGLint* attrib_list) {
-  mock->eglCreateImageKHR(dpy, ctx, target, buffer, attrib_list);
-  return &mock_image;
+  return mock != nullptr
+             ? mock->eglCreateImageKHR(dpy, ctx, target, buffer, attrib_list)
+             : &mock_image;
 }
 
 EGLBoolean _eglDestroyImageKHR(EGLDisplay dpy, EGLImage image) {
-  return mock->eglDestroyImageKHR(dpy, image);
+  return mock != nullptr ? mock->eglDestroyImageKHR(dpy, image)
+                         : bool_success();
 }
 
 static GLuint bound_texture_2d;
@@ -473,6 +518,8 @@ static void _glEnable(GLenum cap) {
   _setEnable(cap, GL_TRUE);
 }
 
+static void _glEGLImageTargetTexture2DOES(GLenum target, GLeglImageOES image) {}
+
 static void _glFramebufferRenderbuffer(GLenum target,
                                        GLenum attachment,
                                        GLenum renderbuffertarget,
@@ -556,7 +603,15 @@ static void _glGetShaderInfoLog(GLuint shader,
                                 GLchar* infoLog) {}
 
 static const GLubyte* _glGetString(GLenum pname) {
-  return mock->glGetString(pname);
+  if (mock != nullptr) {
+    return mock->glGetString(pname);
+  }
+  return pname == GL_VERSION ? reinterpret_cast<const GLubyte*>("OpenGL ES 2.0")
+                             : nullptr;
+}
+
+static void _glUniform2f(GLint location, GLfloat value0, GLfloat value1) {
+  mock->glUniform2f(location, value0, value1);
 }
 
 static GLboolean _glIsEnabled(GLenum cap) {
@@ -611,15 +666,20 @@ void _glShaderSource(GLuint shader,
                      const GLint* length) {}
 
 bool epoxy_has_gl_extension(const char* extension) {
-  return mock->epoxy_has_gl_extension(extension);
+  return mock != nullptr ? mock->epoxy_has_gl_extension(extension) : false;
+}
+
+bool epoxy_has_egl_extension(EGLDisplay display, const char* extension) {
+  return mock != nullptr ? mock->epoxy_has_egl_extension(display, extension)
+                         : false;
 }
 
 bool epoxy_is_desktop_gl(void) {
-  return mock->epoxy_is_desktop_gl();
+  return mock != nullptr ? mock->epoxy_is_desktop_gl() : false;
 }
 
 int epoxy_gl_version(void) {
-  return mock->epoxy_gl_version();
+  return mock != nullptr ? mock->epoxy_gl_version() : 0;
 }
 
 #ifdef __GNUC__
@@ -652,6 +712,8 @@ EGLContext (*epoxy_eglCreateContext)(EGLDisplay dpy,
                                      EGLConfig config,
                                      EGLContext share_context,
                                      const EGLint* attrib_list);
+EGLBoolean (*epoxy_eglDestroyContext)(EGLDisplay dpy, EGLContext context);
+EGLBoolean (*epoxy_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
 EGLSurface (*epoxy_eglCreatePbufferSurface)(EGLDisplay dpy,
                                             EGLConfig config,
                                             const EGLint* attrib_list);
@@ -675,6 +737,7 @@ EGLBoolean (*epoxy_eglMakeCurrent)(EGLDisplay dpy,
                                    EGLSurface read,
                                    EGLContext ctx);
 EGLBoolean (*epoxy_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
+EGLBoolean (*epoxy_eglTerminate)(EGLDisplay dpy);
 EGLImageKHR (*epoxy_eglCreateImageKHR)(EGLDisplay dpy,
                                        EGLContext ctx,
                                        EGLenum target,
@@ -702,6 +765,7 @@ GLuint (*epoxy_glCreateShader)(GLenum shaderType);
 void (*epoxy_glDeleteFramebuffers)(GLsizei n, const GLuint* framebuffers);
 void (*expoxy_glDeleteShader)(GLuint shader);
 void (*epoxy_glDeleteTextures)(GLsizei n, const GLuint* textures);
+void (*epoxy_glEGLImageTargetTexture2DOES)(GLenum target, GLeglImageOES image);
 void (*epoxy_glFramebufferRenderbuffer)(GLenum target,
                                         GLenum attachment,
                                         GLenum renderbuffertarget,
@@ -737,12 +801,15 @@ void (*epoxy_glTexImage2D)(GLenum target,
                            GLenum format,
                            GLenum type,
                            const void* pixels);
+void (*epoxy_glUniform2f)(GLint location, GLfloat value0, GLfloat value1);
 GLenum (*epoxy_glGetError)();
 
 static void library_init() {
   epoxy_eglBindAPI = _eglBindAPI;
   epoxy_eglChooseConfig = _eglChooseConfig;
   epoxy_eglCreateContext = _eglCreateContext;
+  epoxy_eglDestroyContext = _eglDestroyContext;
+  epoxy_eglDestroySurface = _eglDestroySurface;
   epoxy_eglGetCurrentContext = _eglGetCurrentContext;
   epoxy_eglCreatePbufferSurface = _eglCreatePbufferSurface;
   epoxy_eglCreateWindowSurface = _eglCreateWindowSurface;
@@ -756,6 +823,7 @@ static void library_init() {
   epoxy_eglMakeCurrent = _eglMakeCurrent;
   epoxy_eglQueryContext = _eglQueryContext;
   epoxy_eglSwapBuffers = _eglSwapBuffers;
+  epoxy_eglTerminate = _eglTerminate;
   epoxy_eglCreateImageKHR = _eglCreateImageKHR;
   epoxy_eglDestroyImageKHR = _eglDestroyImageKHR;
 
@@ -772,6 +840,7 @@ static void library_init() {
   epoxy_glDeleteRenderbuffers = _glDeleteRenderbuffers;
   epoxy_glDeleteShader = _glDeleteShader;
   epoxy_glDeleteTextures = _glDeleteTextures;
+  epoxy_glEGLImageTargetTexture2DOES = _glEGLImageTargetTexture2DOES;
   epoxy_glDisable = _glDisable;
   epoxy_glEnable = _glEnable;
   epoxy_glFramebufferRenderbuffer = _glFramebufferRenderbuffer;
@@ -794,5 +863,6 @@ static void library_init() {
   epoxy_glTexParameterf = _glTexParameterf;
   epoxy_glTexParameteri = _glTexParameteri;
   epoxy_glTexImage2D = _glTexImage2D;
+  epoxy_glUniform2f = _glUniform2f;
   epoxy_glGetError = _glGetError;
 }
