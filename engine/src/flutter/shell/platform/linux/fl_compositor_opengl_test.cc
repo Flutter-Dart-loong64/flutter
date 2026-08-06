@@ -320,7 +320,7 @@ TEST_F(FlCompositorOpenGLTest, LoongGPUDesktopUsesShaderFallback) {
   const FlutterLayer* layers[1] = {&layer};
 
   std::thread([&]() {
-    fl_compositor_present_layers(FL_COMPOSITOR(compositor), layers, 1);
+    fl_compositor_opengl_composite_layers(compositor, layers, 1);
   }).join();
   int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
   g_autofree unsigned char* image_data =
@@ -328,7 +328,7 @@ TEST_F(FlCompositorOpenGLTest, LoongGPUDesktopUsesShaderFallback) {
   cairo_surface_t* surface = cairo_image_surface_create_for_data(
       image_data, CAIRO_FORMAT_ARGB32, width, height, stride);
   cairo_t* cr = cairo_create(surface);
-  fl_compositor_render(FL_COMPOSITOR(compositor), cr, nullptr, TRUE);
+  fl_compositor_opengl_render(compositor, cr, nullptr);
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
 }
@@ -362,7 +362,7 @@ TEST_F(FlCompositorOpenGLTest, LoongGPUGles2UsesShaderFallback) {
   const FlutterLayer* layers[1] = {&layer};
 
   std::thread([&]() {
-    fl_compositor_present_layers(FL_COMPOSITOR(compositor), layers, 1);
+    fl_compositor_opengl_composite_layers(compositor, layers, 1);
   }).join();
   int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
   g_autofree unsigned char* image_data =
@@ -370,7 +370,7 @@ TEST_F(FlCompositorOpenGLTest, LoongGPUGles2UsesShaderFallback) {
   cairo_surface_t* surface = cairo_image_surface_create_for_data(
       image_data, CAIRO_FORMAT_ARGB32, width, height, stride);
   cairo_t* cr = cairo_create(surface);
-  fl_compositor_render(FL_COMPOSITOR(compositor), cr, nullptr, TRUE);
+  fl_compositor_opengl_render(compositor, cr, nullptr);
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
 }
@@ -404,7 +404,7 @@ TEST_F(FlCompositorOpenGLTest, LoongGPUUsesCenteredShaderFallback) {
   const FlutterLayer* layers[1] = {&layer};
 
   std::thread([&]() {
-    fl_compositor_present_layers(FL_COMPOSITOR(compositor), layers, 1);
+    fl_compositor_opengl_composite_layers(compositor, layers, 1);
   }).join();
   int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
   g_autofree unsigned char* image_data =
@@ -412,7 +412,7 @@ TEST_F(FlCompositorOpenGLTest, LoongGPUUsesCenteredShaderFallback) {
   cairo_surface_t* surface = cairo_image_surface_create_for_data(
       image_data, CAIRO_FORMAT_ARGB32, width, height, stride);
   cairo_t* cr = cairo_create(surface);
-  fl_compositor_render(FL_COMPOSITOR(compositor), cr, nullptr, TRUE);
+  fl_compositor_opengl_render(compositor, cr, nullptr);
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
 }
