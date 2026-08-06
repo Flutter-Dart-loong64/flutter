@@ -43,8 +43,18 @@ TEST_F(FlFramebufferTest, ResourcesRemoved) {
 }
 
 TEST_F(FlFramebufferTest, Sibling) {
-  EXPECT_CALL(epoxy, eglCreateImageKHR);
+  EXPECT_CALL(epoxy, eglCreateImageKHR)
+      .WillOnce(::testing::Return(reinterpret_cast<EGLImage>(1)));
   g_autoptr(FlFramebuffer) framebuffer =
       fl_framebuffer_new(GL_RGB, 100, 100, TRUE);
   g_autoptr(FlFramebuffer) sibling = fl_framebuffer_create_sibling(framebuffer);
+  EXPECT_NE(sibling, nullptr);
+}
+
+TEST_F(FlFramebufferTest, EGLImageCreationFailureIsNotShareable) {
+  EXPECT_CALL(epoxy, eglCreateImageKHR)
+      .WillOnce(::testing::Return(EGL_NO_IMAGE_KHR));
+  g_autoptr(FlFramebuffer) framebuffer =
+      fl_framebuffer_new(GL_RGB, 100, 100, TRUE);
+  EXPECT_FALSE(fl_framebuffer_get_shareable(framebuffer));
 }

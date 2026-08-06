@@ -6,7 +6,6 @@
 
 #include <cstring>
 
-#include <epoxy/egl.h>
 #include <epoxy/gl.h>
 
 static gboolean gl_string_contains(GLenum name, const char* needle) {
@@ -37,21 +36,28 @@ static gboolean has_resolvable_framebuffer_blit_proc(FlOpenGLDriver driver) {
     return FALSE;
   }
 
-  if (driver != kFlOpenGLDriverLoongGPU) {
-    return TRUE;
+  if (driver == kFlOpenGLDriverLoongGPU) {
+    // LG110 resolves the framebuffer blit entry points, but its X11 path
+    // scales the destination to half width and height. Keep rendering on the
+    // GPU and use the compositor shader path instead.
+    return FALSE;
   }
 
-  // LoongGPU exposes both GLX desktop and EGL ES contexts on UOS25. Flutter's
-  // Linux embedder uses EGL ES, where libepoxy must have a provider for
-  // glBlitFramebuffer before this compositor can safely call it.
-  return eglGetProcAddress("glBlitFramebuffer") != nullptr ||
-         eglGetProcAddress("glBlitFramebufferEXT") != nullptr ||
-         eglGetProcAddress("glBlitFramebufferANGLE") != nullptr;
+  return TRUE;
 }
 
 FlOpenGLDriverCapabilities fl_opengl_driver_get_capabilities() {
   FlOpenGLDriverCapabilities capabilities = {};
   capabilities.driver = detect_driver();
+  capabilities.supports_impeller = TRUE;
+
+  if (capabilities.driver == kFlOpenGLDriverLoongGPU) {
+    // The LG110 EGL/GLES 2 path cannot run Impeller reliably with the current
+    // driver. Keep Skia hardware rendering as the default on that path, while
+    // allowing newer LoongGPU GL implementations to be validated separately.
+    capabilities.supports_impeller =
+        epoxy_is_desktop_gl() || epoxy_gl_version() >= 30;
+  }
 
   // NVIDIA and Vivante are temporarily disabled due to
   // https://github.com/flutter/flutter/issues/152099.

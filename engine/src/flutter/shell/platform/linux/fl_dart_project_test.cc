@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 
+#include "flutter/shell/platform/linux/fl_dart_project_private.h"
 #include "flutter/shell/platform/linux/testing/linux_test.h"
 #include "gtest/gtest.h"
 
@@ -73,10 +74,13 @@ TEST_F(FlDartProjectTest, DartEntrypointArgs) {
 
 TEST_F(FlDartProjectTest, EnableImpeller) {
   EXPECT_TRUE(fl_dart_project_get_enable_impeller(project));
+  EXPECT_FALSE(fl_dart_project_has_impeller_override(project));
 
   fl_dart_project_set_enable_impeller(project, FALSE);
   EXPECT_FALSE(fl_dart_project_get_enable_impeller(project));
+  EXPECT_TRUE(fl_dart_project_has_impeller_override(project));
 
   fl_dart_project_set_enable_impeller(project, TRUE);
   EXPECT_TRUE(fl_dart_project_get_enable_impeller(project));
+  EXPECT_TRUE(fl_dart_project_has_impeller_override(project));
 }

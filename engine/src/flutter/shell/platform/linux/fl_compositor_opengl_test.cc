@@ -20,12 +20,6 @@
 
 #include <epoxy/egl.h>
 
-namespace {
-
-void DoNothingGLProc() {}
-
-}  // namespace
-
 class FlCompositorOpenGLTest : public flutter::testing::LinuxTest {
  protected:
   void SetUp() override {
@@ -306,7 +300,7 @@ TEST_F(FlCompositorOpenGLTest, NoBlitFramebuffer) {
   cairo_destroy(cr);
 }
 
-TEST_F(FlCompositorOpenGLTest, BlitFramebufferLoongGPUMissingProc) {
+TEST_F(FlCompositorOpenGLTest, LoongGPUDesktopUsesShaderFallback) {
   constexpr size_t width = 100;
   constexpr size_t height = 100;
 
@@ -318,8 +312,7 @@ TEST_F(FlCompositorOpenGLTest, BlitFramebufferLoongGPUMissingProc) {
           reinterpret_cast<const GLubyte*>("LoongGPU(TM) LG110")));
   ON_CALL(epoxy, epoxy_is_desktop_gl).WillByDefault(::testing::Return(true));
   EXPECT_CALL(epoxy, epoxy_gl_version).WillRepeatedly(::testing::Return(30));
-  EXPECT_CALL(epoxy, eglGetProcAddress(::testing::_))
-      .WillRepeatedly(::testing::Return(nullptr));
+  EXPECT_CALL(epoxy, eglGetProcAddress(::testing::_)).Times(0);
   EXPECT_CALL(epoxy, glBlitFramebuffer).Times(0);
 
   g_autoptr(FlFramebuffer) framebuffer =
@@ -347,7 +340,7 @@ TEST_F(FlCompositorOpenGLTest, BlitFramebufferLoongGPUMissingProc) {
   cairo_destroy(cr);
 }
 
-TEST_F(FlCompositorOpenGLTest, BlitFramebufferLoongGPUGles2WithoutProvider) {
+TEST_F(FlCompositorOpenGLTest, LoongGPUGles2UsesShaderFallback) {
   constexpr size_t width = 100;
   constexpr size_t height = 100;
 
@@ -389,7 +382,7 @@ TEST_F(FlCompositorOpenGLTest, BlitFramebufferLoongGPUGles2WithoutProvider) {
   cairo_destroy(cr);
 }
 
-TEST_F(FlCompositorOpenGLTest, BlitFramebufferLoongGPUWithResolvableProc) {
+TEST_F(FlCompositorOpenGLTest, LoongGPUUsesCenteredShaderFallback) {
   constexpr size_t width = 100;
   constexpr size_t height = 100;
 
@@ -401,10 +394,10 @@ TEST_F(FlCompositorOpenGLTest, BlitFramebufferLoongGPUWithResolvableProc) {
           reinterpret_cast<const GLubyte*>("LoongGPU(TM) LG110")));
   ON_CALL(epoxy, epoxy_is_desktop_gl).WillByDefault(::testing::Return(true));
   EXPECT_CALL(epoxy, epoxy_gl_version).WillRepeatedly(::testing::Return(30));
-  EXPECT_CALL(epoxy,
-              eglGetProcAddress(::testing::StrEq("glBlitFramebuffer")))
-      .WillRepeatedly(::testing::Return(&DoNothingGLProc));
-  EXPECT_CALL(epoxy, glBlitFramebuffer);
+  EXPECT_CALL(epoxy, eglGetProcAddress(::testing::_)).Times(0);
+  EXPECT_CALL(epoxy, glBlitFramebuffer).Times(0);
+  EXPECT_CALL(epoxy, glUniform2f(::testing::_, 0.0f, 0.0f));
+  EXPECT_CALL(epoxy, glUniform2f(::testing::_, 1.0f, 1.0f));
 
   g_autoptr(FlFramebuffer) framebuffer =
       fl_framebuffer_new(GL_RGB, width, height, FALSE);

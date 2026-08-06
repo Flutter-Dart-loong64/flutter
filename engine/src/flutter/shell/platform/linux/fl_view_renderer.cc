@@ -4,6 +4,7 @@
 
 #include "flutter/shell/platform/linux/fl_view_renderer.h"
 
+#include <epoxy/gl.h>
 #include <gdk/gdkwayland.h>
 
 #include "flutter/shell/platform/linux/fl_compositor.h"
@@ -11,6 +12,37 @@
 #include "flutter/shell/platform/linux/fl_compositor_software.h"
 #include "flutter/shell/platform/linux/fl_engine_private.h"
 #include "flutter/shell/platform/linux/fl_opengl_manager.h"
+
+#if defined(__loongarch__) || defined(__loongarch64)
+static gboolean has_gdk_gl_option(const gchar* options, const gchar* option) {
+  if (options == nullptr) {
+    return FALSE;
+  }
+
+  g_auto(GStrv) values = g_strsplit_set(options, ",:; ", -1);
+  for (size_t i = 0; values[i] != nullptr; i++) {
+    if (g_str_equal(values[i], option)) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+// GTK 3 selects the Wayland EGL client API while GDK initializes, before a
+// GdkGLContext exists. Make its consumer context use the same GLES API as
+// Flutter's producer contexts without discarding caller-supplied GDK options.
+__attribute__((constructor)) static void configure_loongarch_gdk_gl() {
+  const gchar* options = g_getenv("GDK_GL");
+  if (has_gdk_gl_option(options, "gles")) {
+    return;
+  }
+
+  g_autofree gchar* updated = options == nullptr || options[0] == '\0'
+                                  ? g_strdup("gles")
+                                  : g_strconcat(options, ",gles", nullptr);
+  g_setenv("GDK_GL", updated, TRUE);
+}
+#endif
 
 struct _FlViewRenderer {
   GtkDrawingArea parent_instance;
@@ -91,16 +123,31 @@ static void setup_opengl(FlViewRenderer* self) {
     return;
   }
 
+  // Flutter renders with OpenGL ES through EGL on Wayland. Request the same
+  // API for the GDK consumer context before it is realized; some drivers,
+  // including LoongGPU LG110, cannot create GDK's desktop GL default there.
+  if (GDK_IS_WAYLAND_DISPLAY(gtk_widget_get_display(GTK_WIDGET(self)))) {
+    gdk_gl_context_set_use_es(self->render_context, TRUE);
+  }
+
   if (!gdk_gl_context_realize(self->render_context, &error)) {
     g_warning("Failed to realize OpenGL context: %s", error->message);
     return;
   }
 
-  // If using Wayland, then EGL is in use and we can access the frame
-  // from the Flutter context using EGLImage. If not (i.e. X11 using GLX)
-  // then we have to copy the texture via the CPU.
-  gboolean shareable =
-      GDK_IS_WAYLAND_DISPLAY(gtk_widget_get_display(GTK_WIDGET(self)));
+  // Wayland can use EGLImage when both the Flutter producer context and the
+  // GDK consumer context expose the required API. X11 uses a GLX consumer and
+  // must copy via the CPU. In particular, LoongGPU advertises
+  // GL_OES_EGL_image in GLX but crashes when importing an EGL-created image.
+  gboolean shareable = FALSE;
+  if (GDK_IS_WAYLAND_DISPLAY(gtk_widget_get_display(GTK_WIDGET(self))) &&
+      fl_opengl_manager_supports_egl_image(
+          fl_engine_get_opengl_manager(self->engine))) {
+    gdk_gl_context_make_current(self->render_context);
+    shareable = epoxy_has_gl_extension("GL_OES_EGL_image") &&
+                epoxy_glEGLImageTargetTexture2DOES != nullptr;
+    gdk_gl_context_clear_current();
+  }
   self->compositor = FL_COMPOSITOR(fl_compositor_opengl_new(
       fl_engine_get_task_runner(self->engine),
       fl_engine_get_opengl_manager(self->engine), shareable));

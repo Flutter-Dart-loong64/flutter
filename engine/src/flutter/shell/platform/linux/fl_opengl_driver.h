@@ -19,6 +19,7 @@ typedef enum {
 typedef struct {
   FlOpenGLDriver driver;
   gboolean supports_framebuffer_blit;
+  gboolean supports_impeller;
 } FlOpenGLDriverCapabilities;
 
 // Detects the active OpenGL driver and the features that Flutter's Linux shell

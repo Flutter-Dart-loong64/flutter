@@ -18,7 +18,8 @@ G_DECLARE_FINAL_TYPE(FlEGLImage, fl_egl_image, FL, EGL_IMAGE, GObject)
  *
  * Creates an object that manages an EGL image.
  *
- * Returns: a new #FlEGLImage.
+ * Returns: (transfer full) (nullable): a new #FlEGLImage, or %NULL if the
+ *     image could not be created.
  */
 FlEGLImage* fl_egl_image_new(GLuint texture);
 

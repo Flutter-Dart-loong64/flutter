@@ -11,6 +11,7 @@
 #include "flutter/shell/platform/linux/public/flutter_linux/fl_engine.h"
 #include "flutter/shell/platform/linux/public/flutter_linux/fl_json_message_codec.h"
 #include "flutter/shell/platform/linux/public/flutter_linux/fl_string_codec.h"
+#include "flutter/shell/platform/linux/testing/mock_epoxy.h"
 #include "flutter/shell/platform/linux/testing/mock_renderable.h"
 
 // MOCK_ENGINE_PROC is leaky by design
@@ -932,6 +933,27 @@ TEST_F(FlEngineTest, SendKeyEventError) {
 }
 
 TEST_F(FlEngineTest, EnableImpellerDefault) {
+  ::testing::NiceMock<flutter::testing::MockEpoxy> epoxy;
+  ON_CALL(epoxy, glGetString(::testing::_))
+      .WillByDefault([](GLenum name) -> const GLubyte* {
+        switch (name) {
+          case GL_VENDOR:
+            return reinterpret_cast<const GLubyte*>("Mesa");
+          case GL_RENDERER:
+            return reinterpret_cast<const GLubyte*>("Generic GLES3");
+          case GL_VERSION:
+            return reinterpret_cast<const GLubyte*>("OpenGL ES 3.0 Mesa");
+          default:
+            return nullptr;
+        }
+      });
+  ON_CALL(epoxy, epoxy_is_desktop_gl).WillByDefault(::testing::Return(false));
+  ON_CALL(epoxy, epoxy_gl_version).WillByDefault(::testing::Return(30));
+  ON_CALL(epoxy, eglMakeCurrent).WillByDefault(::testing::Return(EGL_TRUE));
+
+  g_clear_object(&engine);
+  engine = fl_engine_new(project);
+
   bool called = false;
   fl_engine_get_embedder_api(engine)->Initialize = MOCK_ENGINE_PROC(
       Initialize,
@@ -946,6 +968,118 @@ TEST_F(FlEngineTest, EnableImpellerDefault) {
           }
         }
         EXPECT_TRUE(has_impeller_switch);
+        return kSuccess;
+      }));
+  fl_engine_get_embedder_api(engine)->RunInitialized =
+      MOCK_ENGINE_PROC(RunInitialized, ([](auto engine) { return kSuccess; }));
+
+  StartEngine();
+  EXPECT_TRUE(called);
+}
+
+TEST_F(FlEngineTest, DisableImpellerWithoutOpenGL) {
+  g_setenv("FLUTTER_LINUX_RENDERER", "software", TRUE);
+  g_clear_object(&engine);
+  engine = fl_engine_new(project);
+  g_unsetenv("FLUTTER_LINUX_RENDERER");
+
+  bool called = false;
+  fl_engine_get_embedder_api(engine)->Initialize = MOCK_ENGINE_PROC(
+      Initialize,
+      ([&called](size_t version, const FlutterRendererConfig* config,
+                 const FlutterProjectArgs* args, void* user_data,
+                 FLUTTER_API_SYMBOL(FlutterEngine) * engine_out) {
+        called = true;
+        for (int i = 0; i < args->command_line_argc; i++) {
+          EXPECT_STRNE(args->command_line_argv[i], "--enable-impeller");
+        }
+        return kSuccess;
+      }));
+  fl_engine_get_embedder_api(engine)->RunInitialized =
+      MOCK_ENGINE_PROC(RunInitialized, ([](auto engine) { return kSuccess; }));
+
+  StartEngine();
+  EXPECT_TRUE(called);
+}
+
+TEST_F(FlEngineTest, DisableImpellerOnLoongGPUGles2) {
+  ::testing::NiceMock<flutter::testing::MockEpoxy> epoxy;
+  ON_CALL(epoxy, glGetString(::testing::_))
+      .WillByDefault([](GLenum name) -> const GLubyte* {
+        switch (name) {
+          case GL_VENDOR:
+            return reinterpret_cast<const GLubyte*>("X.Org");
+          case GL_RENDERER:
+            return reinterpret_cast<const GLubyte*>("LoongGPU(TM) LG110");
+          case GL_VERSION:
+            return reinterpret_cast<const GLubyte*>("OpenGL ES 2.0 Mesa");
+          default:
+            return nullptr;
+        }
+      });
+  ON_CALL(epoxy, epoxy_is_desktop_gl).WillByDefault(::testing::Return(false));
+  ON_CALL(epoxy, epoxy_gl_version).WillByDefault(::testing::Return(20));
+  ON_CALL(epoxy, eglMakeCurrent).WillByDefault(::testing::Return(EGL_TRUE));
+
+  g_clear_object(&engine);
+  engine = fl_engine_new(project);
+
+  bool called = false;
+  fl_engine_get_embedder_api(engine)->Initialize = MOCK_ENGINE_PROC(
+      Initialize,
+      ([&called](size_t version, const FlutterRendererConfig* config,
+                 const FlutterProjectArgs* args, void* user_data,
+                 FLUTTER_API_SYMBOL(FlutterEngine) * engine_out) {
+        called = true;
+        for (int i = 0; i < args->command_line_argc; i++) {
+          EXPECT_STRNE(args->command_line_argv[i], "--enable-impeller");
+        }
+        return kSuccess;
+      }));
+  fl_engine_get_embedder_api(engine)->RunInitialized =
+      MOCK_ENGINE_PROC(RunInitialized, ([](auto engine) { return kSuccess; }));
+
+  StartEngine();
+  EXPECT_TRUE(called);
+}
+
+TEST_F(FlEngineTest, ExplicitImpellerOverrideOnLoongGPUGles2) {
+  ::testing::NiceMock<flutter::testing::MockEpoxy> epoxy;
+  ON_CALL(epoxy, glGetString(::testing::_))
+      .WillByDefault([](GLenum name) -> const GLubyte* {
+        switch (name) {
+          case GL_VENDOR:
+            return reinterpret_cast<const GLubyte*>("X.Org");
+          case GL_RENDERER:
+            return reinterpret_cast<const GLubyte*>("LoongGPU(TM) LG110");
+          case GL_VERSION:
+            return reinterpret_cast<const GLubyte*>("OpenGL ES 2.0 Mesa");
+          default:
+            return nullptr;
+        }
+      });
+  ON_CALL(epoxy, epoxy_is_desktop_gl).WillByDefault(::testing::Return(false));
+  ON_CALL(epoxy, epoxy_gl_version).WillByDefault(::testing::Return(20));
+  ON_CALL(epoxy, eglMakeCurrent).WillByDefault(::testing::Return(EGL_TRUE));
+
+  fl_dart_project_set_enable_impeller(project, TRUE);
+  g_clear_object(&engine);
+  engine = fl_engine_new(project);
+
+  bool called = false;
+  fl_engine_get_embedder_api(engine)->Initialize = MOCK_ENGINE_PROC(
+      Initialize,
+      ([&called](size_t version, const FlutterRendererConfig* config,
+                 const FlutterProjectArgs* args, void* user_data,
+                 FLUTTER_API_SYMBOL(FlutterEngine) * engine_out) {
+        called = true;
+        int impeller_switches = 0;
+        for (int i = 0; i < args->command_line_argc; i++) {
+          if (strcmp(args->command_line_argv[i], "--enable-impeller") == 0) {
+            impeller_switches++;
+          }
+        }
+        EXPECT_EQ(impeller_switches, 1);
         return kSuccess;
       }));
   fl_engine_get_embedder_api(engine)->RunInitialized =

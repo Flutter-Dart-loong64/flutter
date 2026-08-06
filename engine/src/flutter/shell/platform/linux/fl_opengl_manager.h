@@ -25,6 +25,28 @@ G_DECLARE_FINAL_TYPE(FlOpenGLManager,
 FlOpenGLManager* fl_opengl_manager_new();
 
 /**
+ * fl_opengl_manager_is_valid:
+ * @manager: an #FlOpenGLManager.
+ *
+ * Checks whether EGL and all required OpenGL ES contexts were initialized.
+ *
+ * Returns: %TRUE if the manager is ready for rendering.
+ */
+gboolean fl_opengl_manager_is_valid(FlOpenGLManager* manager);
+
+/**
+ * fl_opengl_manager_supports_egl_image:
+ * @manager: an #FlOpenGLManager.
+ *
+ * Checks whether the Flutter EGL context can export textures as EGL images.
+ * The consumer context must check its own GL_OES_EGL_image support before
+ * importing an image.
+ *
+ * Returns: %TRUE if EGL image export is supported.
+ */
+gboolean fl_opengl_manager_supports_egl_image(FlOpenGLManager* manager);
+
+/**
  * fl_opengl_manager_make_current:
  * @manager: an #FlOpenGLManager.
  *

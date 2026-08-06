@@ -21,10 +21,27 @@ class MockEpoxy {
   ~MockEpoxy();
 
   MOCK_METHOD(bool, epoxy_has_gl_extension, (const char* extension));
+  MOCK_METHOD(bool,
+              epoxy_has_egl_extension,
+              (EGLDisplay display, const char* extension));
   MOCK_METHOD(bool, epoxy_is_desktop_gl, ());
   MOCK_METHOD(int, epoxy_gl_version, ());
   MOCK_METHOD(EGLProcAddress, eglGetProcAddress, (const char* procname));
-  MOCK_METHOD(void,
+  MOCK_METHOD(EGLBoolean,
+              eglChooseConfig,
+              (EGLDisplay dpy,
+               const EGLint* attrib_list,
+               EGLConfig* configs,
+               EGLint config_size,
+               EGLint* num_config));
+  MOCK_METHOD(EGLSurface,
+              eglCreatePbufferSurface,
+              (EGLDisplay dpy, EGLConfig config, const EGLint* attrib_list));
+  MOCK_METHOD(
+      EGLBoolean,
+      eglMakeCurrent,
+      (EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx));
+  MOCK_METHOD(EGLImage,
               eglCreateImageKHR,
               (EGLDisplay dpy,
                EGLContext ctx,
@@ -56,6 +73,9 @@ class MockEpoxy {
   MOCK_METHOD(void, glGenRenderbuffers, (GLsizei n, GLuint* renderbuffers));
   MOCK_METHOD(void, glGenTextures, (GLsizei n, GLuint* textures));
   MOCK_METHOD(const GLubyte*, glGetString, (GLenum pname));
+  MOCK_METHOD(void,
+              glUniform2f,
+              (GLint location, GLfloat value0, GLfloat value1));
 };
 
 }  // namespace testing
