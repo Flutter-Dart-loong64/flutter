@@ -114,40 +114,36 @@ static gboolean redraw_cb(gpointer user_data) {
 }
 
 static void setup_opengl(FlViewRenderer* self) {
-  g_autoptr(GError) error = nullptr;
-
-  self->render_context = gdk_window_create_gl_context(
-      gtk_widget_get_window(GTK_WIDGET(self)), &error);
-  if (self->render_context == nullptr) {
-    g_warning("Failed to create OpenGL context: %s", error->message);
-    return;
-  }
-
-  // Flutter renders with OpenGL ES through EGL on Wayland. Request the same
-  // API for the GDK consumer context before it is realized; some drivers,
-  // including LoongGPU LG110, cannot create GDK's desktop GL default there.
-  if (GDK_IS_WAYLAND_DISPLAY(gtk_widget_get_display(GTK_WIDGET(self)))) {
-    gdk_gl_context_set_use_es(self->render_context, TRUE);
-  }
-
-  if (!gdk_gl_context_realize(self->render_context, &error)) {
-    g_warning("Failed to realize OpenGL context: %s", error->message);
-    return;
-  }
-
-  // Wayland can use EGLImage when both the Flutter producer context and the
-  // GDK consumer context expose the required API. X11 uses a GLX consumer and
-  // must copy via the CPU. In particular, LoongGPU advertises
-  // GL_OES_EGL_image in GLX but crashes when importing an EGL-created image.
   gboolean shareable = FALSE;
-  if (GDK_IS_WAYLAND_DISPLAY(gtk_widget_get_display(GTK_WIDGET(self))) &&
-      fl_opengl_manager_supports_egl_image(
-          fl_engine_get_opengl_manager(self->engine))) {
-    gdk_gl_context_make_current(self->render_context);
-    shareable = epoxy_has_gl_extension("GL_OES_EGL_image") &&
-                epoxy_glEGLImageTargetTexture2DOES != nullptr;
-    gdk_gl_context_clear_current();
+  GdkDisplay* display = gtk_widget_get_display(GTK_WIDGET(self));
+
+  // X11 presents CPU-transferred frames through Cairo, avoiding a second GLX
+  // context that may be backed by a different driver than Flutter's EGL
+  // context. Wayland keeps the EGLImage sharing path when both contexts support
+  // it, and otherwise uses the same Cairo fallback.
+  if (GDK_IS_WAYLAND_DISPLAY(display)) {
+    g_autoptr(GError) error = nullptr;
+    self->render_context = gdk_window_create_gl_context(
+        gtk_widget_get_window(GTK_WIDGET(self)), &error);
+    if (self->render_context == nullptr) {
+      g_warning("Failed to create OpenGL context: %s", error->message);
+    } else {
+      gdk_gl_context_set_use_es(self->render_context, TRUE);
+      if (!gdk_gl_context_realize(self->render_context, &error)) {
+        g_warning("Failed to realize OpenGL context: %s", error->message);
+      } else if (fl_opengl_manager_supports_egl_image(
+                     fl_engine_get_opengl_manager(self->engine))) {
+        gdk_gl_context_make_current(self->render_context);
+        shareable = epoxy_has_gl_extension("GL_OES_EGL_image") &&
+                    epoxy_glEGLImageTargetTexture2DOES != nullptr;
+        gdk_gl_context_clear_current();
+      }
+    }
+    if (!shareable) {
+      g_clear_object(&self->render_context);
+    }
   }
+
   self->compositor = FL_COMPOSITOR(fl_compositor_opengl_new(
       fl_engine_get_task_runner(self->engine),
       fl_engine_get_opengl_manager(self->engine), shareable));

@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+#include <cstring>
 #include <thread>
 #include "flutter/shell/platform/linux/testing/linux_test.h"
 #include "gtest/gtest.h"
@@ -78,6 +79,53 @@ TEST_F(FlCompositorOpenGLTest, Render) {
   fl_compositor_render(FL_COMPOSITOR(compositor), cr, nullptr, TRUE);
   cairo_surface_destroy(surface);
   cairo_destroy(cr);
+}
+
+TEST_F(FlCompositorOpenGLTest, CpuTransferUsesCairoPixelLayout) {
+  constexpr size_t width = 2;
+  constexpr size_t height = 2;
+  constexpr uint8_t gl_pixels[] = {
+      0x00, 0x00, 0xff, 0xff,  // Bottom-left: blue.
+      0xff, 0xff, 0xff, 0xff,  // Bottom-right: white.
+      0xff, 0x00, 0x00, 0xff,  // Top-left: red.
+      0x00, 0xff, 0x00, 0xff,  // Top-right: green.
+  };
+  EXPECT_CALL(epoxy, glReadPixels(0, 0, width, height, GL_RGBA,
+                                  GL_UNSIGNED_BYTE, ::testing::_))
+      .WillOnce(
+          [&](GLint, GLint, GLsizei, GLsizei, GLenum, GLenum, void* pixels) {
+            memcpy(pixels, gl_pixels, sizeof(gl_pixels));
+          });
+
+  g_autoptr(FlFramebuffer) framebuffer =
+      fl_framebuffer_new(GL_RGB, width, height, FALSE);
+  FlutterBackingStore backing_store = {
+      .type = kFlutterBackingStoreTypeOpenGL,
+      .open_gl = {.framebuffer = {.user_data = framebuffer}}};
+  FlutterLayer layer = {.type = kFlutterLayerContentTypeBackingStore,
+                        .backing_store = &backing_store,
+                        .offset = {0, 0},
+                        .size = {width, height}};
+  const FlutterLayer* layers[1] = {&layer};
+  fl_compositor_present_layers(FL_COMPOSITOR(compositor), layers, 1);
+
+  int stride = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, width);
+  g_autofree unsigned char* image_data = static_cast<unsigned char*>(
+      g_malloc0(static_cast<size_t>(height) * stride));
+  cairo_surface_t* surface = cairo_image_surface_create_for_data(
+      image_data, CAIRO_FORMAT_ARGB32, width, height, stride);
+  cairo_t* cr = cairo_create(surface);
+  fl_compositor_render(FL_COMPOSITOR(compositor), cr, nullptr, FALSE);
+  cairo_surface_flush(surface);
+
+  const uint32_t* pixels = reinterpret_cast<const uint32_t*>(image_data);
+  EXPECT_EQ(pixels[0], 0xffff0000u);
+  EXPECT_EQ(pixels[1], 0xff00ff00u);
+  EXPECT_EQ(pixels[2], 0xff0000ffu);
+  EXPECT_EQ(pixels[3], 0xffffffffu);
+
+  cairo_destroy(cr);
+  cairo_surface_destroy(surface);
 }
 
 TEST_F(FlCompositorOpenGLTest, Resize) {

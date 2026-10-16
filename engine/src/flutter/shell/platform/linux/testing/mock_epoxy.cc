@@ -610,6 +610,18 @@ static const GLubyte* _glGetString(GLenum pname) {
                              : nullptr;
 }
 
+static void _glReadPixels(GLint x,
+                          GLint y,
+                          GLsizei width,
+                          GLsizei height,
+                          GLenum format,
+                          GLenum type,
+                          void* pixels) {
+  if (mock != nullptr) {
+    mock->glReadPixels(x, y, width, height, format, type, pixels);
+  }
+}
+
 static void _glUniform2f(GLint location, GLfloat value0, GLfloat value1) {
   mock->glUniform2f(location, value0, value1);
 }
@@ -786,6 +798,13 @@ void (*epoxy_glRenderbufferStorage)(GLenum target,
                                     GLenum internalformat,
                                     GLsizei width,
                                     GLsizei height);
+void (*epoxy_glReadPixels)(GLint x,
+                           GLint y,
+                           GLsizei width,
+                           GLsizei height,
+                           GLenum format,
+                           GLenum type,
+                           void* pixels);
 void (*epoxy_glShaderSource)(GLuint shader,
                              GLsizei count,
                              const GLchar* const* string,
@@ -859,6 +878,7 @@ static void library_init() {
   epoxy_glIsEnabled = _glIsEnabled;
   epoxy_glLinkProgram = _glLinkProgram;
   epoxy_glRenderbufferStorage = _glRenderbufferStorage;
+  epoxy_glReadPixels = _glReadPixels;
   epoxy_glShaderSource = _glShaderSource;
   epoxy_glTexParameterf = _glTexParameterf;
   epoxy_glTexParameteri = _glTexParameteri;

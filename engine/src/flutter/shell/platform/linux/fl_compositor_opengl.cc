@@ -7,6 +7,8 @@
 #include <epoxy/egl.h>
 #include <epoxy/gl.h>
 
+#include <algorithm>
+
 #include "flutter/common/constants.h"
 #include "flutter/shell/platform/embedder/embedder.h"
 #include "flutter/shell/platform/linux/fl_compositor_opengl_shader.h"
@@ -32,7 +34,7 @@ struct _FlCompositorOpenGL {
   // Last rendered frame.
   FlFramebuffer* framebuffer;
 
-  // Last rendered frame pixels (only set if shareable is TRUE).
+  // Last rendered frame pixels (only set if sharing is unavailable).
   uint8_t* pixels;
 
   // whether the renderer waits for frame render
@@ -71,6 +73,25 @@ static void composite_layer(FlCompositorOpenGL* self,
   glBindTexture(GL_TEXTURE_2D, texture_id);
 
   glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+// Converts bottom-up RGBA pixels returned by OpenGL into the top-down native
+// ARGB32 byte order expected by Cairo on little-endian Linux systems.
+static void prepare_pixels_for_cairo(uint8_t* pixels,
+                                     size_t width,
+                                     size_t height) {
+  size_t stride = width * 4;
+  for (size_t y = 0; y < height / 2; y++) {
+    uint8_t* top = pixels + y * stride;
+    uint8_t* bottom = pixels + (height - y - 1) * stride;
+    for (size_t x = 0; x < stride; x++) {
+      std::swap(top[x], bottom[x]);
+    }
+  }
+
+  for (size_t i = 0; i < width * height; i++) {
+    std::swap(pixels[i * 4], pixels[i * 4 + 2]);
+  }
 }
 
 static gboolean fl_compositor_opengl_present_layers(FlCompositor* compositor,
@@ -226,6 +247,7 @@ static gboolean fl_compositor_opengl_present_layers(FlCompositor* compositor,
     glBindFramebuffer(GL_READ_FRAMEBUFFER,
                       fl_framebuffer_get_id(self->framebuffer));
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, self->pixels);
+    prepare_pixels_for_cairo(self->pixels, width, height);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
   }
   glBindFramebuffer(GL_READ_FRAMEBUFFER, saved_read_framebuffer_binding);
@@ -269,19 +291,25 @@ static gboolean fl_compositor_opengl_render(FlCompositor* compositor,
   }
 
   // If frame not ready, then wait for it.
-  gint scale_factor = gdk_window_get_scale_factor(window);
-  size_t width, height;
+  size_t framebuffer_width = fl_framebuffer_get_width(self->framebuffer);
+  size_t framebuffer_height = fl_framebuffer_get_height(self->framebuffer);
+  gint scale_factor =
+      window != nullptr ? gdk_window_get_scale_factor(window) : 1;
+  size_t width = framebuffer_width;
+  size_t height = framebuffer_height;
   gint64 expiry_time =
       g_get_monotonic_time() + kCompositorRenderTimeoutMicroseconds;
   while (true) {
-    width = gdk_window_get_width(window) * scale_factor;
-    height = gdk_window_get_height(window) * scale_factor;
+    if (window != nullptr) {
+      width = gdk_window_get_width(window) * scale_factor;
+      height = gdk_window_get_height(window) * scale_factor;
+    }
+    framebuffer_width = fl_framebuffer_get_width(self->framebuffer);
+    framebuffer_height = fl_framebuffer_get_height(self->framebuffer);
     if (!wait_for_frame) {
       break;
     }
 
-    size_t framebuffer_width = fl_framebuffer_get_width(self->framebuffer);
-    size_t framebuffer_height = fl_framebuffer_get_height(self->framebuffer);
     if (framebuffer_width == width && framebuffer_height == height) {
       break;
     }
@@ -303,33 +331,29 @@ static gboolean fl_compositor_opengl_render(FlCompositor* compositor,
         fl_framebuffer_create_sibling(self->framebuffer);
     gdk_cairo_draw_from_gl(cr, window, fl_framebuffer_get_texture_id(sibling),
                            GL_TEXTURE, scale_factor, 0, 0, width, height);
+    glFlush();
   } else {
-    GLint saved_texture_binding;
-    glGetIntegerv(GL_TEXTURE_BINDING_2D, &saved_texture_binding);
-
-    GLuint texture_id;
-    glGenTextures(1, &texture_id);
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-    GLsizei fb_width = 0;
-    GLsizei fb_height = 0;
-    if (self->framebuffer != nullptr) {
-      fb_width =
-          static_cast<GLsizei>(fl_framebuffer_get_width(self->framebuffer));
-      fb_height =
-          static_cast<GLsizei>(fl_framebuffer_get_height(self->framebuffer));
+    int stride = cairo_format_stride_for_width(
+        CAIRO_FORMAT_ARGB32, static_cast<int>(framebuffer_width));
+    cairo_surface_t* surface = cairo_image_surface_create_for_data(
+        self->pixels, CAIRO_FORMAT_ARGB32, static_cast<int>(framebuffer_width),
+        static_cast<int>(framebuffer_height), stride);
+    if (cairo_surface_status(surface) == CAIRO_STATUS_SUCCESS) {
+      cairo_surface_mark_dirty(surface);
+      cairo_save(cr);
+      cairo_scale(cr, static_cast<double>(width) / framebuffer_width,
+                  static_cast<double>(height) / framebuffer_height);
+      cairo_set_source_surface(cr, surface, 0, 0);
+      cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_BILINEAR);
+      cairo_rectangle(cr, 0, 0, framebuffer_width, framebuffer_height);
+      cairo_fill(cr);
+      cairo_restore(cr);
+    } else {
+      g_warning("Failed to create Cairo surface for the OpenGL frame: %s",
+                cairo_status_to_string(cairo_surface_status(surface)));
     }
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, fb_width, fb_height, 0, GL_RGBA,
-                 GL_UNSIGNED_BYTE, self->pixels);
-
-    gdk_cairo_draw_from_gl(cr, window, texture_id, GL_TEXTURE, scale_factor, 0,
-                           0, width, height);
-
-    glDeleteTextures(1, &texture_id);
-
-    glBindTexture(GL_TEXTURE_2D, saved_texture_binding);
+    cairo_surface_destroy(surface);
   }
-
-  glFlush();
 
   g_mutex_unlock(&self->frame_mutex);
 

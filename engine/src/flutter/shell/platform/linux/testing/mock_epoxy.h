@@ -74,6 +74,15 @@ class MockEpoxy {
   MOCK_METHOD(void, glGenTextures, (GLsizei n, GLuint* textures));
   MOCK_METHOD(const GLubyte*, glGetString, (GLenum pname));
   MOCK_METHOD(void,
+              glReadPixels,
+              (GLint x,
+               GLint y,
+               GLsizei width,
+               GLsizei height,
+               GLenum format,
+               GLenum type,
+               void* pixels));
+  MOCK_METHOD(void,
               glUniform2f,
               (GLint location, GLfloat value0, GLfloat value1));
 };
