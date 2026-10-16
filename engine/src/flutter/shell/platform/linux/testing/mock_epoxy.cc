@@ -452,15 +452,31 @@ static void _setEnable(GLenum cap, GLboolean value) {
 
 void _glAttachShader(GLuint program, GLuint shader) {}
 
+static void _glBindBuffer(GLenum target, GLuint buffer) {}
+
 static void _glBindFramebuffer(GLenum target, GLuint framebuffer) {}
 
 static void _glBindRenderbuffer(GLenum target, GLuint framebuffer) {}
+
+static void _glBindVertexArray(GLuint array) {}
+
+static void _glBlendFunc(GLenum sfactor, GLenum dfactor) {}
+
+static void _glBlendFuncSeparate(GLenum srcRGB,
+                                 GLenum dstRGB,
+                                 GLenum srcAlpha,
+                                 GLenum dstAlpha) {}
 
 static void _glBindTexture(GLenum target, GLuint texture) {
   if (target == GL_TEXTURE_2D) {
     bound_texture_2d = texture;
   }
 }
+
+static void _glBufferData(GLenum target,
+                          GLsizeiptr size,
+                          const void* data,
+                          GLenum usage) {}
 
 static void _glBlitFramebuffer(GLint srcX0,
                                GLint srcY0,
@@ -496,6 +512,12 @@ void _glDeleteFramebuffers(GLsizei n, const GLuint* framebuffers) {
   }
 }
 
+static void _glDeleteBuffers(GLsizei n, const GLuint* buffers) {}
+
+static void _glDeleteProgram(GLuint program) {}
+
+static void _glDeleteVertexArrays(GLsizei n, const GLuint* arrays) {}
+
 void _glDeleteRenderbuffers(GLsizei n, const GLuint* renderbuffers) {
   if (mock) {
     mock->glDeleteRenderbuffers(n, renderbuffers);
@@ -517,6 +539,12 @@ static void _glDisable(GLenum cap) {
 static void _glEnable(GLenum cap) {
   _setEnable(cap, GL_TRUE);
 }
+
+static void _glEnableVertexAttribArray(GLuint index) {}
+
+static void _glDrawArrays(GLenum mode, GLint first, GLsizei count) {}
+
+static void _glFlush() {}
 
 static void _glEGLImageTargetTexture2DOES(GLenum target, GLeglImageOES image) {}
 
@@ -551,6 +579,18 @@ static void _glGenFramebuffers(GLsizei n, GLuint* framebuffers) {
   }
 }
 
+static void _glGenBuffers(GLsizei n, GLuint* buffers) {
+  for (GLsizei i = 0; i < n; i++) {
+    buffers[i] = 0;
+  }
+}
+
+static void _glGenVertexArrays(GLsizei n, GLuint* arrays) {
+  for (GLsizei i = 0; i < n; i++) {
+    arrays[i] = 0;
+  }
+}
+
 static void _glGenRenderbuffers(GLsizei n, GLuint* renderbuffers) {
   for (GLsizei i = 0; i < n; i++) {
     renderbuffers[i] = 0;
@@ -572,6 +612,14 @@ static void _glGetFramebufferAttachmentParameteriv(GLenum target,
     auto it = framebuffer_renderbuffers.find(attachment);
     *params = (it != framebuffer_renderbuffers.end()) ? it->second : 0;
   }
+}
+
+static GLint _glGetAttribLocation(GLuint program, const GLchar* name) {
+  return 0;
+}
+
+static GLint _glGetUniformLocation(GLuint program, const GLchar* name) {
+  return 0;
 }
 
 static void _glGetIntegerv(GLenum pname, GLint* data) {
@@ -625,6 +673,17 @@ static void _glReadPixels(GLint x,
 static void _glUniform2f(GLint location, GLfloat value0, GLfloat value1) {
   mock->glUniform2f(location, value0, value1);
 }
+
+static void _glUseProgram(GLuint program) {}
+
+static void _glVertexAttribPointer(GLuint index,
+                                   GLint size,
+                                   GLenum type,
+                                   GLboolean normalized,
+                                   GLsizei stride,
+                                   const void* pointer) {}
+
+static void _glViewport(GLint x, GLint y, GLsizei width, GLsizei height) {}
 
 static GLboolean _glIsEnabled(GLenum cap) {
   if (cap == GL_BLEND) {
@@ -758,9 +817,11 @@ EGLImageKHR (*epoxy_eglCreateImageKHR)(EGLDisplay dpy,
 EGLBoolean (*epoxy_eglDestroyImageKHR)(EGLDisplay dpy, EGLImage image);
 
 void (*epoxy_glAttachShader)(GLuint program, GLuint shader);
+void (*epoxy_glBindBuffer)(GLenum target, GLuint buffer);
 void (*epoxy_glBindFramebuffer)(GLenum target, GLuint framebuffer);
 void (*epoxy_glBindRenderbuffer)(GLenum target, GLuint renderbuffer);
 void (*epoxy_glBindTexture)(GLenum target, GLuint texture);
+void (*epoxy_glBindVertexArray)(GLuint array);
 void (*epoxy_glBlitFramebuffer)(GLint srcX0,
                                 GLint srcY0,
                                 GLint srcX1,
@@ -771,13 +832,34 @@ void (*epoxy_glBlitFramebuffer)(GLint srcX0,
                                 GLint dstY1,
                                 GLbitfield mask,
                                 GLenum filter);
+void (*epoxy_glBlendFunc)(GLenum sfactor, GLenum dfactor);
+void (*epoxy_glBlendFuncSeparate)(GLenum srcRGB,
+                                  GLenum dstRGB,
+                                  GLenum srcAlpha,
+                                  GLenum dstAlpha);
+void (*epoxy_glBufferData)(GLenum target,
+                           GLsizeiptr size,
+                           const void* data,
+                           GLenum usage);
+void (*epoxy_glClearColor)(GLfloat red,
+                           GLfloat green,
+                           GLfloat blue,
+                           GLfloat alpha);
 void (*epoxy_glCompileShader)(GLuint shader);
 GLuint (*epoxy_glCreateProgram)();
 GLuint (*epoxy_glCreateShader)(GLenum shaderType);
+void (*epoxy_glDeleteBuffers)(GLsizei n, const GLuint* buffers);
 void (*epoxy_glDeleteFramebuffers)(GLsizei n, const GLuint* framebuffers);
-void (*expoxy_glDeleteShader)(GLuint shader);
+void (*epoxy_glDeleteProgram)(GLuint program);
+void (*epoxy_glDeleteRenderbuffers)(GLsizei n, const GLuint* renderbuffers);
+void (*epoxy_glDeleteShader)(GLuint shader);
 void (*epoxy_glDeleteTextures)(GLsizei n, const GLuint* textures);
+void (*epoxy_glDeleteVertexArrays)(GLsizei n, const GLuint* arrays);
+void (*epoxy_glDisable)(GLenum cap);
+void (*epoxy_glDrawArrays)(GLenum mode, GLint first, GLsizei count);
 void (*epoxy_glEGLImageTargetTexture2DOES)(GLenum target, GLeglImageOES image);
+void (*epoxy_glEnable)(GLenum cap);
+void (*epoxy_glEnableVertexAttribArray)(GLuint index);
 void (*epoxy_glFramebufferRenderbuffer)(GLenum target,
                                         GLenum attachment,
                                         GLenum renderbuffertarget,
@@ -787,10 +869,29 @@ void (*epoxy_glFramebufferTexture2D)(GLenum target,
                                      GLenum textarget,
                                      GLuint texture,
                                      GLint level);
+void (*epoxy_glFlush)();
+void (*epoxy_glGenBuffers)(GLsizei n, GLuint* buffers);
 void (*epoxy_glGetFramebufferAttachmentParameteriv)(GLenum target,
                                                     GLenum attachment,
                                                     GLenum pname,
                                                     GLint* params);
+void (*epoxy_glGenRenderbuffers)(GLsizei n, GLuint* renderbuffers);
+void (*epoxy_glGenVertexArrays)(GLsizei n, GLuint* arrays);
+GLint (*epoxy_glGetAttribLocation)(GLuint program, const GLchar* name);
+void (*epoxy_glGetIntegerv)(GLenum pname, GLint* data);
+void (*epoxy_glGetProgramInfoLog)(GLuint program,
+                                  GLsizei bufSize,
+                                  GLsizei* length,
+                                  GLchar* infoLog);
+void (*epoxy_glGetProgramiv)(GLuint program, GLenum pname, GLint* params);
+void (*epoxy_glGetShaderInfoLog)(GLuint shader,
+                                 GLsizei bufSize,
+                                 GLsizei* length,
+                                 GLchar* infoLog);
+void (*epoxy_glGetShaderiv)(GLuint shader, GLenum pname, GLint* params);
+const GLubyte* (*epoxy_glGetString)(GLenum name);
+GLint (*epoxy_glGetUniformLocation)(GLuint program, const GLchar* name);
+GLboolean (*epoxy_glIsEnabled)(GLenum cap);
 void (*epoxy_glGenFramebuffers)(GLsizei n, GLuint* framebuffers);
 void (*epoxy_glGenTextures)(GLsizei n, GLuint* textures);
 void (*epoxy_glLinkProgram)(GLuint program);
@@ -821,6 +922,14 @@ void (*epoxy_glTexImage2D)(GLenum target,
                            GLenum type,
                            const void* pixels);
 void (*epoxy_glUniform2f)(GLint location, GLfloat value0, GLfloat value1);
+void (*epoxy_glUseProgram)(GLuint program);
+void (*epoxy_glVertexAttribPointer)(GLuint index,
+                                    GLint size,
+                                    GLenum type,
+                                    GLboolean normalized,
+                                    GLsizei stride,
+                                    const void* pointer);
+void (*epoxy_glViewport)(GLint x, GLint y, GLsizei width, GLsizei height);
 GLenum (*epoxy_glGetError)();
 
 static void library_init() {
@@ -847,34 +956,49 @@ static void library_init() {
   epoxy_eglDestroyImageKHR = _eglDestroyImageKHR;
 
   epoxy_glAttachShader = _glAttachShader;
+  epoxy_glBindBuffer = _glBindBuffer;
   epoxy_glBindFramebuffer = _glBindFramebuffer;
   epoxy_glBindRenderbuffer = _glBindRenderbuffer;
   epoxy_glBindTexture = _glBindTexture;
+  epoxy_glBindVertexArray = _glBindVertexArray;
   epoxy_glBlitFramebuffer = _glBlitFramebuffer;
+  epoxy_glBlendFunc = _glBlendFunc;
+  epoxy_glBlendFuncSeparate = _glBlendFuncSeparate;
+  epoxy_glBufferData = _glBufferData;
   epoxy_glCompileShader = _glCompileShader;
   epoxy_glClearColor = _glClearColor;
   epoxy_glCreateProgram = _glCreateProgram;
   epoxy_glCreateShader = _glCreateShader;
+  epoxy_glDeleteBuffers = _glDeleteBuffers;
   epoxy_glDeleteFramebuffers = _glDeleteFramebuffers;
+  epoxy_glDeleteProgram = _glDeleteProgram;
   epoxy_glDeleteRenderbuffers = _glDeleteRenderbuffers;
   epoxy_glDeleteShader = _glDeleteShader;
   epoxy_glDeleteTextures = _glDeleteTextures;
+  epoxy_glDeleteVertexArrays = _glDeleteVertexArrays;
   epoxy_glEGLImageTargetTexture2DOES = _glEGLImageTargetTexture2DOES;
   epoxy_glDisable = _glDisable;
+  epoxy_glDrawArrays = _glDrawArrays;
   epoxy_glEnable = _glEnable;
+  epoxy_glEnableVertexAttribArray = _glEnableVertexAttribArray;
   epoxy_glFramebufferRenderbuffer = _glFramebufferRenderbuffer;
   epoxy_glFramebufferTexture2D = _glFramebufferTexture2D;
+  epoxy_glFlush = _glFlush;
+  epoxy_glGenBuffers = _glGenBuffers;
   epoxy_glGenFramebuffers = _glGenFramebuffers;
   epoxy_glGenRenderbuffers = _glGenRenderbuffers;
   epoxy_glGenTextures = _glGenTextures;
+  epoxy_glGenVertexArrays = _glGenVertexArrays;
   epoxy_glGetFramebufferAttachmentParameteriv =
       _glGetFramebufferAttachmentParameteriv;
+  epoxy_glGetAttribLocation = _glGetAttribLocation;
   epoxy_glGetIntegerv = _glGetIntegerv;
   epoxy_glGetProgramiv = _glGetProgramiv;
   epoxy_glGetProgramInfoLog = _glGetProgramInfoLog;
   epoxy_glGetShaderiv = _glGetShaderiv;
   epoxy_glGetShaderInfoLog = _glGetShaderInfoLog;
   epoxy_glGetString = _glGetString;
+  epoxy_glGetUniformLocation = _glGetUniformLocation;
   epoxy_glIsEnabled = _glIsEnabled;
   epoxy_glLinkProgram = _glLinkProgram;
   epoxy_glRenderbufferStorage = _glRenderbufferStorage;
@@ -884,5 +1008,8 @@ static void library_init() {
   epoxy_glTexParameteri = _glTexParameteri;
   epoxy_glTexImage2D = _glTexImage2D;
   epoxy_glUniform2f = _glUniform2f;
+  epoxy_glUseProgram = _glUseProgram;
+  epoxy_glVertexAttribPointer = _glVertexAttribPointer;
+  epoxy_glViewport = _glViewport;
   epoxy_glGetError = _glGetError;
 }

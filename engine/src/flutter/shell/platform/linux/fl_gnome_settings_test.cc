@@ -27,11 +27,12 @@ class FlGnomeSettingsTest : public flutter::testing::LinuxTest {
 static GSettings* create_settings(const gchar* name, const gchar* schema_id) {
   g_autofree gchar* path =
       g_build_filename(flutter::testing::GetFixturesPath(), name, nullptr);
-  g_autoptr(GSettingsSchemaSource) source =
+  GSettingsSchemaSource* source =
       g_settings_schema_source_new_from_directory(path, nullptr, false,
                                                   nullptr);
   g_autoptr(GSettingsSchema) schema =
       g_settings_schema_source_lookup(source, schema_id, false);
+  g_settings_schema_source_unref(source);
   g_autoptr(GSettingsBackend) backend = g_memory_settings_backend_new();
   return g_settings_new_full(schema, backend, nullptr);
 }

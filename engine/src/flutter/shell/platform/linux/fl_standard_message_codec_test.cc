@@ -310,13 +310,13 @@ TEST(FlStandardMessageCodecTest, DecodeFloatMinusZero) {
 TEST(FlStandardMessageCodecTest, DecodeFloatNaN) {
   g_autoptr(FlValue) value = decode_message("0600000000000000000000000000f87f");
   ASSERT_EQ(fl_value_get_type(value), FL_VALUE_TYPE_FLOAT);
-  EXPECT_TRUE(isnan(fl_value_get_float(value)));
+  EXPECT_TRUE(std::isnan(fl_value_get_float(value)));
 }
 
 TEST(FlStandardMessageCodecTest, DecodeFloatInfinity) {
   g_autoptr(FlValue) value = decode_message("0600000000000000000000000000f07f");
   ASSERT_EQ(fl_value_get_type(value), FL_VALUE_TYPE_FLOAT);
-  EXPECT_TRUE(isinf(fl_value_get_float(value)));
+  EXPECT_TRUE(std::isinf(fl_value_get_float(value)));
 }
 
 TEST(FlStandardMessageCodecTest, DecodeFloatNoData) {
