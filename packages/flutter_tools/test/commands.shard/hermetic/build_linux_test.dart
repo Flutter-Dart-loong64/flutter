@@ -75,6 +75,7 @@ void main() {
   FakeCommand cmakeCommand(
     String buildMode, {
     String target = 'x64',
+    Map<String, String>? environment,
     void Function(List<String> command)? onRun,
   }) {
     return FakeCommand(
@@ -87,6 +88,7 @@ void main() {
         '/linux',
       ],
       workingDirectory: '/build/linux/$target/$buildMode',
+      environment: environment,
       onRun: onRun,
     );
   }
@@ -719,7 +721,11 @@ ERROR: No file or variants found for asset: images/a_dot_burr.jpeg
       );
       setUpMockProjectFilesForBuild();
       processManager.addCommands(<FakeCommand>[
-        cmakeCommand('debug', target: 'loong64'),
+        cmakeCommand(
+          'debug',
+          target: 'loong64',
+          environment: <String, String>{'CC': 'gcc', 'CXX': 'g++'},
+        ),
         ninjaCommand('debug', target: 'loong64'),
       ]);
 

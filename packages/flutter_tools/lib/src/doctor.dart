@@ -135,6 +135,7 @@ class _DefaultDoctorValidatorsProvider implements DoctorValidatorsProvider {
         LinuxDoctorValidator(
           processManager: globals.processManager,
           userMessages: globals.userMessages,
+          hostPlatform: globals.os.hostPlatform,
         ),
       if (windowsWorkflow!.appliesToHostPlatform) visualStudioValidator!,
       if (proxyValidator.shouldShow) proxyValidator,

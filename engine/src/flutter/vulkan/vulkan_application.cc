@@ -4,6 +4,7 @@
 
 #include "vulkan_application.h"
 
+#include <cstring>
 #include <utility>
 #include <vector>
 

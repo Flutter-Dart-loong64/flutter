@@ -782,6 +782,15 @@ if (is_win) {
       "-Wno-error=unused-function",
       "-Wno-error=unused-variable",
     ]
+    if (is_debug) {
+      # SwiftShader and VMA trigger these GCC diagnostics in flutter_tester.
+      default_warning_flags += [
+        "-Wno-error=deprecated-declarations",
+        "-Wno-error=deprecated-enum-enum-conversion",
+        "-Wno-error=ignored-attributes",
+        "-Wno-error=ignored-qualifiers",
+      ]
+    }
     default_warning_flags_cc += [
       "-Wno-error=deprecated",
       "-Wno-error=deprecated-copy",

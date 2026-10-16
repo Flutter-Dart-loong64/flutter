@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:flutter_tools/src/base/io.dart';
+import 'package:flutter_tools/src/base/os.dart';
 import 'package:flutter_tools/src/base/user_messages.dart';
 import 'package:flutter_tools/src/doctor_validator.dart';
 import 'package:flutter_tools/src/linux/linux_doctor.dart';
@@ -23,6 +24,10 @@ Thread model: posix
 InstalledDir: /usr/bin
 ''',
   );
+}
+
+FakeCommand _gccPresentCommand(String version) {
+  return FakeCommand(command: const <String>['g++', '--version'], stdout: 'g++ (GCC) $version\n');
 }
 
 // A command that will return typical-looking 'cmake --version' output with the
@@ -193,6 +198,27 @@ FakeCommand _missingBinaryException(String binary) {
 }
 
 void main() {
+  testWithoutContext('Uses GCC on Loong64 hosts', () async {
+    final ProcessManager processManager = FakeProcessManager.list(<FakeCommand>[
+      _cmakePresentCommand('3.16.3'),
+      _gccPresentCommand('8.3.0'),
+      _ninjaPresentCommand('1.10.0'),
+      _pkgConfigPresentCommand('0.29'),
+      ..._gtkLibrariesPresentCommands(),
+      _eglinfoPresentCommand(),
+    ]);
+    final DoctorValidator linuxDoctorValidator = LinuxDoctorValidator(
+      processManager: processManager,
+      userMessages: UserMessages(),
+      hostPlatform: HostPlatform.linux_loong64,
+    );
+
+    final ValidationResult result = await linuxDoctorValidator.validate();
+
+    expect(result.type, ValidationType.success);
+    expect(result.messages.first, const ValidationMessage('g++ (GCC) 8.3.0'));
+  });
+
   testWithoutContext(
     'Full validation when everything is available at the necessary version',
     () async {

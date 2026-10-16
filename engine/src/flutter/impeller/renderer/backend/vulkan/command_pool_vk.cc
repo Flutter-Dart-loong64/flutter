@@ -273,7 +273,7 @@ CommandPoolRecyclerVK::Reuse() {
   // Otherwise, remove and return a recycled pool.
   auto data = std::move(recycled_.back());
   recycled_.pop_back();
-  return std::move(data);
+  return data;
 }
 
 void CommandPoolRecyclerVK::Reclaim(

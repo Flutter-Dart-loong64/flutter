@@ -5,6 +5,7 @@
 import 'package:process/process.dart';
 
 import '../base/io.dart';
+import '../base/os.dart';
 import '../base/user_messages.dart';
 import '../base/version.dart';
 import '../convert.dart';
@@ -115,23 +116,34 @@ class _DriverInformation {
   }
 }
 
-/// A validator that checks for Clang and Make build dependencies.
+/// A validator that checks for compiler and Linux build dependencies.
 class LinuxDoctorValidator extends DoctorValidator {
-  LinuxDoctorValidator({required ProcessManager processManager, required UserMessages userMessages})
-    : _processManager = processManager,
-      _userMessages = userMessages,
-      super('Linux toolchain - develop for Linux desktop');
+  LinuxDoctorValidator({
+    required ProcessManager processManager,
+    required UserMessages userMessages,
+    HostPlatform hostPlatform = HostPlatform.linux_x64,
+  }) : _hostPlatform = hostPlatform,
+       _processManager = processManager,
+       _userMessages = userMessages,
+       super('Linux toolchain - develop for Linux desktop');
 
   final ProcessManager _processManager;
   final UserMessages _userMessages;
+  final HostPlatform _hostPlatform;
 
   static const kClangBinary = 'clang++';
+  static const kGccBinary = 'g++';
   static const kCmakeBinary = 'cmake';
   static const kNinjaBinary = 'ninja';
   static const kPkgConfigBinary = 'pkg-config';
 
-  final _requiredBinaryVersions = <String, Version>{
-    kClangBinary: Version(3, 4, 0),
+  String get _compilerBinary =>
+      _hostPlatform == HostPlatform.linux_loong64 ? kGccBinary : kClangBinary;
+
+  Map<String, Version> get _requiredBinaryVersions => <String, Version>{
+    _compilerBinary: _hostPlatform == HostPlatform.linux_loong64
+        ? Version(8, 3, 0)
+        : Version(3, 4, 0),
     kCmakeBinary: Version(3, 10, 0),
     kNinjaBinary: Version(1, 8, 0),
     kPkgConfigBinary: Version(0, 29, 0),
@@ -159,18 +171,26 @@ class LinuxDoctorValidator extends DoctorValidator {
       validationType = ValidationType.partial;
     }
 
-    // Message for Clang.
+    // Message for the C++ compiler.
     {
-      final _VersionInfo? version = installedVersions[kClangBinary];
+      final _VersionInfo? version = installedVersions[_compilerBinary];
       if (version == null || version.number == null) {
-        messages.add(ValidationMessage.error(_userMessages.clangMissing));
+        messages.add(
+          ValidationMessage.error(
+            _compilerBinary == kGccBinary ? _userMessages.gccMissing : _userMessages.clangMissing,
+          ),
+        );
       } else {
-        assert(_requiredBinaryVersions.containsKey(kClangBinary));
+        assert(_requiredBinaryVersions.containsKey(_compilerBinary));
         messages.add(ValidationMessage(version.description));
-        final Version requiredVersion = _requiredBinaryVersions[kClangBinary]!;
+        final Version requiredVersion = _requiredBinaryVersions[_compilerBinary]!;
         if (version.number! < requiredVersion) {
           messages.add(
-            ValidationMessage.error(_userMessages.clangTooOld(requiredVersion.toString())),
+            ValidationMessage.error(
+              _compilerBinary == kGccBinary
+                  ? _userMessages.gccTooOld(requiredVersion.toString())
+                  : _userMessages.clangTooOld(requiredVersion.toString()),
+            ),
           );
         }
       }

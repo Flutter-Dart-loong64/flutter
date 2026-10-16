@@ -142,6 +142,10 @@ class UserMessages {
       'It is likely available from your distribution (e.g.: apt install clang), or '
       'can be downloaded from https://releases.llvm.org/';
   String clangTooOld(String minimumVersion) => 'clang++ $minimumVersion or later is required.';
+  String get gccMissing =>
+      'g++ is required for Linux development on LoongArch.\n'
+      'Install the C++ compiler package provided by your distribution.';
+  String gccTooOld(String minimumVersion) => 'g++ $minimumVersion or later is required.';
   String get cmakeMissing =>
       'CMake is required for Linux development.\n'
       'It is likely available from your distribution (e.g.: apt install cmake), or '

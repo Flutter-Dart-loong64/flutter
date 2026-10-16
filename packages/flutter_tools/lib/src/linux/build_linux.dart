@@ -167,6 +167,14 @@ Future<void> _runCmake(
       needCrossBuild && targetPlatform == TargetPlatform.linux_riscv64;
   final bool needCrossBuildOptionsForLoong64 =
       needCrossBuild && targetPlatform == TargetPlatform.linux_loong64;
+  final bool useNativeLoong64Gcc =
+      !needCrossBuild && targetPlatform == TargetPlatform.linux_loong64;
+  final Map<String, String> compilerEnvironment = useNativeLoong64Gcc
+      ? <String, String>{
+          'CC': globals.platform.environment['CC'] ?? 'gcc',
+          'CXX': globals.platform.environment['CXX'] ?? 'g++',
+        }
+      : <String, String>{'CC': 'clang', 'CXX': 'clang++'};
   int result;
   if (!globals.processManager.canRun('cmake')) {
     throwToolExit(globals.userMessages.cmakeMissing);
@@ -192,7 +200,7 @@ Future<void> _runCmake(
       sourceDir.path,
     ],
     workingDirectory: buildDir.path,
-    environment: <String, String>{'CC': 'clang', 'CXX': 'clang++'},
+    environment: compilerEnvironment,
     trace: true,
   );
   if (result != 0) {
