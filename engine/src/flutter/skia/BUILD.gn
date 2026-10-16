@@ -112,6 +112,9 @@ skia_library_configs = [
 config("our_vulkan_headers") {
   include_dirs = [ "include/third_party/vulkan" ]
   defines = [ "SK_USE_INTERNAL_VULKAN_HEADERS" ]
+  if (is_linux && current_cpu == "loong64" && !is_clang) {
+    cflags_cc = [ "-Wno-error=comment" ]
+  }
 }
 
 # Use for CPU-specific Skia code that needs particular compiler flags.
